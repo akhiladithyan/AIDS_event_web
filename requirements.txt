@@ -1,0 +1,43 @@
+hey I need to create an website for my departmrnt AI&DS event where I can show the events in that so that the students can apply and participate in it. so basically I will connect the supabase for the database and vercel for hosting. we will need security for protecting the data. the website will have the event display and the information in each event, when we type /admin in the url we can access the event data, even the event we can add, remove or alter the event. the applied students details and team name will be saved In the supabase and it should be easy for backup if I fuck up. 
+
+in the same website we can give a qr generater where each team has a qr given we can take attendene using the qr. to do that we need a event management where we can see what are the teams are there for each event and we can edit the team and person info when we /manager this open with a password
+/admin should use a different password and /manager will have a different password
+in the /judge url the judges can enter the marks for the team for each event individually, where we can even have password for each judge as well and we can display the result in them too but this is not visible to students
+
+/manager in this, using the qr we can say the team is present or not, if the team is present only then the team(atleast one person in a team should be present) will be eligible for the round and they will be displayed in the judging list.
+some team will also do onspot registrations so we need to add the teams and we can give qr to them.
+
+student admin
+the student can login using the userid and password only after log in they can participate in the event. every student can log in and get a qr to take attendance. the leader can make the team and join them after opted for an event the details and qr will be displayed in the profile of each person's profile option. 
+we can do this way, once the team leader registered for the event each team members userid and password and qr is generated and stored in the profile of each person, the userid and password is sent to the leader so that each person can login this would be easier
+
+database
+once they login there id is stored in the supabase for login and display details. then the /manager can see the team name and details in each event and can make changes, add, delete and can even mark attendance
+
+/judge
+once they were present, their team name move to the judge where the judge can give names, each event can have more than 1 judge so i need to add userid and password for each judge mannualy
+it can display the result once they click complete and the admin manager enters the password only the judging ends because we need verification to end the judgeing. the judge can alter the marks at any stage
+
+website home
+in the website home they can see the event details before they opt for the event, the leader can opt for an event using the team details after registering it the leader will get the userid and password for each person in the team, once they login and see the profile they can see the qr in the profile. (this would be easier)
+
+/admin
+can do edits to the event and details of the event
+
+/manager 
+can edit the team and details of the team and mark attendance. to take attendance we have a button to access the camera in a phone and we are going to scan the qr by that way we can mark attendance
+
+and qr for each team has to stored in the database where later i can get them and print them in wrist band for each participant
+
+
+
+for this website we are going make the website look like this image
+its in D:\Akhil - college\AIDS_event_web\website-inspiration
+
+the colour theme is the purple like colours for the backgound, we are going to use glass morphisim as it in the D:\Akhil - college\AIDS_event_web\website-inspiration  and the main colour is #ef4a40 and white and #6654b5 (like glass morphisim)
+
+we are going to make the website like in the website-inspiration image
+
+in between i will add some reactbits components so that we will use them.
+
+we may use anything to create the webist like tailwind, react you choose the best to create i will adapt

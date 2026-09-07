@@ -1,0 +1,11 @@
+akhil-adithyan's Project
+https://vrkxnregpmzuhikuteew.supabase.co
+
+publishable key
+sb_publishable_m9Heqp40V2blefF-PGo4CQ_p1tAoHPY
+
+secret key :
+sb_secret_ouiGRC8uF10C_yNDnarL3Q_Ju7aCg4Q
+
+anon public :
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlbW1icGNmcWVmemRxaWN6cHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3NDk3NTEsImV4cCI6MjEwNDMyNTc1MX0.joaExD3PdaaVsBEL4567KhBiaLBt4erllrmn7VO-y_4
