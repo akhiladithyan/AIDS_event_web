@@ -39,29 +39,35 @@ const Judge = () => {
     }
   }, []);
 
-  const handleLoginJudge = (uName, uPass) => {
-    const judges = storeService.getJudges();
+  const handleLoginJudge = async (uName, uPass) => {
+    const judges = await storeService.getJudges();
     const found = judges.find(j => j.username === uName.trim() && j.password === uPass);
     if (found) {
       setCurrentJudge(found);
       setLoginError('');
       sessionStorage.setItem('neura_judge_session', JSON.stringify({ username: found.username, password: found.password }));
-      loadJudgeData();
+      await loadJudgeData();
     } else {
       setLoginError('Invalid Judge Username or Password. Try username: judge1 / password: j1');
     }
   };
 
-  const loadJudgeData = () => {
-    const evts = storeService.getEvents();
+  const loadJudgeData = async () => {
+    const evts = await storeService.getEvents();
     setEvents(evts);
     if (evts.length > 0 && !selectedEventId) {
       setSelectedEventId(evts[0].id);
     }
-    setTeams(storeService.getTeams());
-    setAttendance(storeService.getAttendance());
-    setScores(storeService.getScores());
-    setJudgingLocks(storeService.getJudgingLock());
+    const [tms, att, scs, lcks] = await Promise.all([
+      storeService.getTeams(),
+      storeService.getAttendance(),
+      storeService.getScores(),
+      storeService.getJudgingLock()
+    ]);
+    setTeams(tms);
+    setAttendance(att);
+    setScores(scs);
+    setJudgingLocks(lcks);
   };
 
   const handleSelectTeamForScoring = (team) => {
@@ -84,11 +90,11 @@ const Judge = () => {
     }
   };
 
-  const handleSaveScoresSubmit = (e) => {
+  const handleSaveScoresSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTeam || !currentJudge) return;
 
-    storeService.saveScore({
+    await storeService.saveScore({
       eventId: selectedEventId,
       teamId: selectedTeam.id,
       judgeId: currentJudge.id,
@@ -101,19 +107,19 @@ const Judge = () => {
       feedback: feedbackText
     });
 
-    loadJudgeData();
+    await loadJudgeData();
     setSelectedTeam(null);
   };
 
-  const handleFinalizeEventJudging = (e) => {
+  const handleFinalizeEventJudging = async (e) => {
     e.preventDefault();
-    const curPass = storeService.getPasswords();
+    const curPass = await storeService.getPasswords();
     if (managerVerificationPass === curPass.manager || managerVerificationPass === curPass.admin) {
-      storeService.finalizeJudging(selectedEventId);
+      await storeService.finalizeJudging(selectedEventId);
       setShowLockModal(false);
       setManagerVerificationPass('');
       setLockError('');
-      loadJudgeData();
+      await loadJudgeData();
       confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
     } else {
       setLockError('Incorrect Manager Password verification!');

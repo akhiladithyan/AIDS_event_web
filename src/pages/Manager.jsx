@@ -35,20 +35,23 @@ const Manager = () => {
     }
   }, []);
 
-  const loadManagerData = () => {
-    setTeams(storeService.getTeams());
-    setEvents(storeService.getEvents());
-    setAttendance(storeService.getAttendance());
+  const loadManagerData = async () => {
+    const tms = await storeService.getTeams();
+    const evts = await storeService.getEvents();
+    const att = await storeService.getAttendance();
+    setTeams(tms);
+    setEvents(evts);
+    setAttendance(att);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const curPass = storeService.getPasswords();
+    const curPass = await storeService.getPasswords();
     if (password === curPass.manager) {
       setIsAuthenticated(true);
       sessionStorage.setItem('neura_manager_auth', 'true');
       setPassError('');
-      loadManagerData();
+      await loadManagerData();
     } else {
       setPassError('Incorrect Manager Password!');
     }
@@ -78,37 +81,37 @@ const Manager = () => {
     }
   }, [isCameraActive, isAuthenticated]);
 
-  const handleProcessQR = (qrToken) => {
-    const result = storeService.markAttendance(qrToken, 'Manager Camera Scan');
+  const handleProcessQR = async (qrToken) => {
+    const result = await storeService.markAttendance(qrToken, 'Manager Camera Scan');
     if (result.success) {
       setScanMessage({ success: true, text: result.message });
-      loadManagerData();
+      await loadManagerData();
     } else {
       setScanMessage({ success: false, text: result.message });
     }
     setTimeout(() => setScanMessage(null), 4000);
   };
 
-  const handleManualScanSubmit = (e) => {
+  const handleManualScanSubmit = async (e) => {
     e.preventDefault();
     if (!manualToken) return;
-    handleProcessQR(manualToken.trim());
+    await handleProcessQR(manualToken.trim());
     setManualToken('');
   };
 
-  const handleToggleAttendance = (teamId) => {
-    storeService.toggleAttendance(teamId);
-    loadManagerData();
+  const handleToggleAttendance = async (teamId) => {
+    await storeService.toggleAttendance(teamId);
+    await loadManagerData();
   };
 
-  const handleOnSpotRegister = (e) => {
+  const handleOnSpotRegister = async (e) => {
     e.preventDefault();
     if (!onSpotTeamName || !onSpotEventId || !onSpotLeaderName) {
       alert('Please fill all required fields');
       return;
     }
 
-    const newTeam = storeService.registerTeam({
+    const newTeam = await storeService.registerTeam({
       teamName: onSpotTeamName,
       eventId: onSpotEventId,
       leaderName: onSpotLeaderName,
@@ -117,14 +120,14 @@ const Manager = () => {
     });
 
     // Automatically mark attendance for on-spot registered team
-    storeService.markAttendance(newTeam.id, 'Manager On-Spot');
+    await storeService.markAttendance(newTeam.id, 'Manager On-Spot');
 
     setShowOnSpotModal(false);
     setOnSpotTeamName('');
     setOnSpotLeaderName('');
     setOnSpotLeaderPhone('');
     alert(`On-spot team ${newTeam.teamName} registered & marked present! Team ID: ${newTeam.id}`);
-    loadManagerData();
+    await loadManagerData();
   };
 
   const filteredTeams = teams.filter(t => {

@@ -38,29 +38,31 @@ const Admin = () => {
     }
   }, []);
 
-  const loadAdminData = () => {
-    setEvents(storeService.getEvents());
-    setTeams(storeService.getTeams());
-    const pass = storeService.getPasswords();
+  const loadAdminData = async () => {
+    const evts = await storeService.getEvents();
+    const tms = await storeService.getTeams();
+    const pass = await storeService.getPasswords();
+    setEvents(evts);
+    setTeams(tms);
     setPasswords(pass);
     setNewAdminPass(pass.admin);
     setNewManagerPass(pass.manager);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const curPass = storeService.getPasswords();
+    const curPass = await storeService.getPasswords();
     if (password === curPass.admin) {
       setIsAuthenticated(true);
       sessionStorage.setItem('neura_admin_auth', 'true');
       setPassError('');
-      loadAdminData();
+      await loadAdminData();
     } else {
       setPassError('Incorrect Admin Password!');
     }
   };
 
-  const handleSaveEvent = (e) => {
+  const handleSaveEvent = async (e) => {
     e.preventDefault();
     const rules = rulesStr.split('\n').filter(r => r.trim().length > 0);
     const eventObj = {
@@ -77,13 +79,13 @@ const Admin = () => {
     };
 
     if (editingEventId) {
-      storeService.updateEvent(eventObj);
+      await storeService.updateEvent(eventObj);
     } else {
-      storeService.addEvent(eventObj);
+      await storeService.addEvent(eventObj);
     }
 
     setShowEventModal(false);
-    loadAdminData();
+    await loadAdminData();
   };
 
   const handleEditClick = (evt) => {
@@ -100,25 +102,25 @@ const Admin = () => {
     setShowEventModal(true);
   };
 
-  const handleDeleteClick = (id) => {
+  const handleDeleteClick = async (id) => {
     if (confirm('Are you sure you want to delete this event?')) {
-      storeService.deleteEvent(id);
-      loadAdminData();
+      await storeService.deleteEvent(id);
+      await loadAdminData();
     }
   };
 
-  const handleSavePasswords = (e) => {
+  const handleSavePasswords = async (e) => {
     e.preventDefault();
-    storeService.updatePasswords({
+    await storeService.updatePasswords({
       admin: newAdminPass,
       manager: newManagerPass
     });
     alert('System passwords updated successfully!');
-    loadAdminData();
+    await loadAdminData();
   };
 
-  const handleDownloadJSON = () => {
-    const jsonStr = storeService.exportFullBackup();
+  const handleDownloadJSON = async () => {
+    const jsonStr = await storeService.exportFullBackup();
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

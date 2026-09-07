@@ -24,13 +24,19 @@ const Home = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
-    setEvents(storeService.getEvents());
+    const fetchEvents = async () => {
+      const evts = await storeService.getEvents();
+      setEvents(evts);
+    };
+    fetchEvents();
   }, []);
 
   const handleProgressChange = (progress) => {
     setExpandProgress(progress);
     if (progress >= 0.88) {
       setIsCompleted(true);
+    } else {
+      setIsCompleted(false);
     }
   };
 
@@ -47,7 +53,7 @@ const Home = () => {
       return;
     }
 
-    const newTeam = storeService.registerTeam({
+    const newTeam = await storeService.registerTeam({
       teamName,
       eventId: registerModalEvent.id,
       leaderName,
@@ -74,29 +80,26 @@ const Home = () => {
   };
 
   return (
-    <div style={{ paddingBottom: 80, position: 'relative', zIndex: 1 }}>
-      {/* ═══ FIXED FULL-PAGE GRADIENT BACKGROUND ═══
-           Change colors here: color1, color2, color3 (hex values)
-           This becomes the permanent page background after scroll expansion */}
+    <div style={{ paddingBottom: 80, position: 'relative', zIndex: 1, background: '#0a0614' }}>
+      {/* ═══ FULL-PAGE GRADIENT BACKGROUND ═══
+           Fades in smoothly when scroll expand is fully expanded (expandProgress >= 0.95),
+           and fades back out to black when scrolling back up. */}
       <div style={{
         position: 'fixed',
         inset: 0,
         zIndex: -1,
-        opacity: isCompleted ? 1 : 0,
-        transition: 'opacity 0.8s ease-in-out',
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        opacity: expandProgress >= 0.95 ? 1 : 0,
+        transition: 'opacity 0.4s ease-out'
       }}>
         <Grainient
-          color1="#ef4a40"
-          color2="#150d2e"
-          color3="#6654b5"
           timeSpeed={0.15}
           grainAmount={0.08}
         />
       </div>
 
-      {/* ScrollExpand Hero Section - Unconstrained Track */}
-      <div style={{ position: 'relative', width: '100%', marginBottom: 40 }}>
+      {/* ScrollExpand Hero Section - Solid dark background outside frame */}
+      <div style={{ position: 'relative', width: '100%', marginBottom: 40, background: '#0a0614' }}>
         <ScrollExpand
           src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop"
           title="NEURA 2026"
@@ -109,7 +112,7 @@ const Home = () => {
           scrollDistance={1.4}
           holdDistance={0.4}
           useWindowScroll={true}
-          customMedia={<Grainient />}
+          customMedia={<Grainient timeSpeed={0.15} grainAmount={0.08} />}
           onProgressChange={handleProgressChange}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>

@@ -23,7 +23,7 @@ const StudentProfile = () => {
   }, []);
 
   const loadStudentProfile = async (uId, uPass) => {
-    const teams = storeService.getTeams();
+    const teams = await storeService.getTeams();
     let foundMember = null;
     let foundTeam = null;
 

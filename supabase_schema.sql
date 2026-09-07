@@ -67,14 +67,42 @@ CREATE TABLE IF NOT EXISTS public.judging_locks (
     completed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Public Read & Insert Access for Web Portal
+-- 7. Passwords Table
+CREATE TABLE IF NOT EXISTS public.passwords (
+    id TEXT PRIMARY KEY DEFAULT 'system',
+    admin TEXT NOT NULL DEFAULT 'admin123',
+    manager TEXT NOT NULL DEFAULT 'manager123'
+);
+
+-- Enable Row Level Security (RLS)
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.judges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.judging_locks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.passwords ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read access on events" ON public.events FOR SELECT USING (true);
-CREATE POLICY "Allow public all access on teams" ON public.teams FOR ALL USING (true);
-CREATE POLICY "Allow public all access on attendance" ON public.attendance FOR ALL USING (true);
-CREATE POLICY "Allow public all access on scores" ON public.scores FOR ALL USING (true);
+-- RLS Policies (Allow all operations for web portal access)
+DROP POLICY IF EXISTS "Allow public all access on events" ON public.events;
+DROP POLICY IF EXISTS "Allow public read access on events" ON public.events;
+CREATE POLICY "Allow public all access on events" ON public.events FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on teams" ON public.teams;
+CREATE POLICY "Allow public all access on teams" ON public.teams FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on attendance" ON public.attendance;
+CREATE POLICY "Allow public all access on attendance" ON public.attendance FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on judges" ON public.judges;
+CREATE POLICY "Allow public all access on judges" ON public.judges FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on scores" ON public.scores;
+CREATE POLICY "Allow public all access on scores" ON public.scores FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on judging_locks" ON public.judging_locks;
+CREATE POLICY "Allow public all access on judging_locks" ON public.judging_locks FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public all access on passwords" ON public.passwords;
+CREATE POLICY "Allow public all access on passwords" ON public.passwords FOR ALL USING (true) WITH CHECK (true);
+
