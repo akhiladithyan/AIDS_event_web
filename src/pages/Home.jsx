@@ -53,25 +53,33 @@ const Home = () => {
       return;
     }
 
-    const newTeam = await storeService.registerTeam({
-      teamName,
-      eventId: registerModalEvent.id,
-      leaderName,
-      leaderPhone,
-      leaderEmail,
-      memberNames
-    });
-
-    // Generate QR Code for team leader
     try {
-      const qrUrl = await QRCode.toDataURL(newTeam.members[0].qrToken, { width: 240, margin: 2 });
-      setQrDataUrl(qrUrl);
-    } catch (err) {
-      console.error('QR generation error:', err);
-    }
+      const newTeam = await storeService.registerTeam({
+        teamName,
+        eventId: registerModalEvent.id,
+        leaderName,
+        leaderPhone,
+        leaderEmail,
+        memberNames
+      });
 
-    setRegistrationResult(newTeam);
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      // Generate QR Code for team leader
+      if (newTeam.qrCodeUrl) {
+        setQrDataUrl(newTeam.qrCodeUrl);
+      } else {
+        try {
+          const qrUrl = await QRCode.toDataURL(newTeam.members[0].qrToken, { width: 240, margin: 2 });
+          setQrDataUrl(qrUrl);
+        } catch (err) {
+          console.error('QR generation error:', err);
+        }
+      }
+
+      setRegistrationResult(newTeam);
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    } catch (err) {
+      alert(err.message || 'Registration failed. Please check details.');
+    }
   };
 
   const copyToClipboard = (text) => {

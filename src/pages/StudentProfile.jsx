@@ -12,8 +12,8 @@ const StudentProfile = () => {
   const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
-    // Check if logged in in session
-    const saved = localStorage.getItem('neura_student_session');
+    // Check if logged in this session (sessionStorage clears on tab close)
+    const saved = sessionStorage.getItem('neura_student_session');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -41,8 +41,8 @@ const StudentProfile = () => {
       setTeamInfo(foundTeam);
       setLoginError('');
 
-      // Store session
-      localStorage.setItem('neura_student_session', JSON.stringify({ userId: foundMember.userId, password: foundMember.password }));
+      // Store session (sessionStorage: cleared on tab close, no cross-account bleed)
+      sessionStorage.setItem('neura_student_session', JSON.stringify({ userId: foundMember.userId, password: foundMember.password }));
 
       // Generate high quality QR code
       try {
@@ -62,7 +62,7 @@ const StudentProfile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('neura_student_session');
+    sessionStorage.removeItem('neura_student_session');
     setLoggedUser(null);
     setTeamInfo(null);
     setUserId('');

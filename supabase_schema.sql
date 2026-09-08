@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.teams (
     leader_email TEXT,
     members JSONB NOT NULL,
     qr_code_token TEXT UNIQUE,
+    qr_code_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

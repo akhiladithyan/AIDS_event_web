@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import QRCode from 'qrcode';
 
 const INITIAL_EVENTS = [
   {
@@ -95,29 +96,6 @@ const INITIAL_TEAMS = [
   }
 ];
 
-const INITIAL_ATTENDANCE = {
-  'TM-9081': { present: true, markedAt: new Date().toISOString(), markedBy: 'Manager' }
-};
-
-// Storage Helpers
-const getStorage = (key, fallback) => {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
-  } catch (e) {
-    console.error('Storage read error:', e);
-    return fallback;
-  }
-};
-
-const setStorage = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error('Storage write error:', e);
-  }
-};
-
 // Mappers for DB Snake Case <-> JS Camel Case
 const mapEventFromDb = (row) => ({
   id: row.id,
@@ -157,6 +135,7 @@ const mapTeamFromDb = (row) => ({
   leaderEmail: row.leader_email,
   members: row.members || [],
   qrCodeToken: row.qr_code_token,
+  qrCodeUrl: row.qr_code_url || '',
   createdAt: row.created_at
 });
 
@@ -170,7 +149,8 @@ const mapTeamToDb = (team) => ({
   leader_phone: team.leaderPhone,
   leader_email: team.leaderEmail,
   members: team.members || [],
-  qr_code_token: team.qrCodeToken
+  qr_code_token: team.qrCodeToken,
+  qr_code_url: team.qrCodeUrl || ''
 });
 
 const mapJudgeFromDb = (row) => ({
@@ -192,128 +172,133 @@ const mapJudgeToDb = (j) => ({
 export const storeService = {
   // 1. EVENTS
   async getEvents() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
-        if (!error && data && data.length > 0) {
-          const events = data.map(mapEventFromDb);
-          setStorage('neura_events', events);
-          return events;
-        }
-        if (!error && data && data.length === 0) {
-          for (const evt of INITIAL_EVENTS) {
-            await supabase.from('events').insert([mapEventToDb(evt)]);
-          }
-          setStorage('neura_events', INITIAL_EVENTS);
-          return INITIAL_EVENTS;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch events error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase is not configured in .env');
     }
-    return getStorage('neura_events', INITIAL_EVENTS);
+    const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.error('Supabase fetch events error:', error);
+      throw error;
+    }
+    if (!data || data.length === 0) {
+      const insertRows = INITIAL_EVENTS.map(mapEventToDb);
+      const { error: seedError } = await supabase.from('events').insert(insertRows);
+      if (seedError) console.error('Error seeding initial events:', seedError);
+      return INITIAL_EVENTS;
+    }
+    return data.map(mapEventFromDb);
   },
 
   async addEvent(event) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const newEvent = { ...event, id: event.id || 'evt-' + Date.now() };
-    const localEvents = getStorage('neura_events', INITIAL_EVENTS);
-    localEvents.push(newEvent);
-    setStorage('neura_events', localEvents);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('events').insert([mapEventToDb(newEvent)]);
-      } catch (e) {
-        console.warn('Supabase add event error:', e);
-      }
+    const { error } = await supabase.from('events').insert([mapEventToDb(newEvent)]);
+    if (error) {
+      console.error('Supabase add event error:', error);
+      throw error;
     }
     return newEvent;
   },
 
   async updateEvent(updatedEvent) {
-    const localEvents = getStorage('neura_events', INITIAL_EVENTS).map(e => e.id === updatedEvent.id ? updatedEvent : e);
-    setStorage('neura_events', localEvents);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('events').update(mapEventToDb(updatedEvent)).eq('id', updatedEvent.id);
-      } catch (e) {
-        console.warn('Supabase update event error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const { error } = await supabase.from('events').update(mapEventToDb(updatedEvent)).eq('id', updatedEvent.id);
+    if (error) {
+      console.error('Supabase update event error:', error);
+      throw error;
     }
   },
 
   async deleteEvent(id) {
-    const localEvents = getStorage('neura_events', INITIAL_EVENTS).filter(e => e.id !== id);
-    setStorage('neura_events', localEvents);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('events').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase delete event error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) {
+      console.error('Supabase delete event error:', error);
+      throw error;
     }
   },
 
   // 2. PASSWORDS
   async getPasswords() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('passwords').select('*').eq('id', 'system').single();
-        if (!error && data) {
-          const pass = { admin: data.admin, manager: data.manager };
-          setStorage('neura_passwords', pass);
-          return pass;
-        } else {
-          await supabase.from('passwords').upsert([{ id: 'system', admin: 'admin123', manager: 'manager123' }]);
-        }
-      } catch (e) {
-        console.warn('Supabase fetch passwords error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const { data, error } = await supabase.from('passwords').select('*').eq('id', 'system').maybeSingle();
+    if (error) {
+      console.error('Supabase fetch passwords error:', error);
+      throw error;
     }
-    return getStorage('neura_passwords', INITIAL_PASSWORDS);
+    if (!data) {
+      const { error: seedErr } = await supabase.from('passwords').upsert([{ id: 'system', admin: 'admin123', manager: 'manager123' }]);
+      if (seedErr) console.error('Error seeding passwords:', seedErr);
+      return INITIAL_PASSWORDS;
+    }
+    return { admin: data.admin, manager: data.manager };
   },
 
   async updatePasswords(passwords) {
-    setStorage('neura_passwords', passwords);
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('passwords').upsert([{ id: 'system', admin: passwords.admin, manager: passwords.manager }]);
-      } catch (e) {
-        console.warn('Supabase update passwords error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const { error } = await supabase.from('passwords').upsert([{ id: 'system', admin: passwords.admin, manager: passwords.manager }]);
+    if (error) {
+      console.error('Supabase update passwords error:', error);
+      throw error;
     }
   },
 
   // 3. TEAMS & STUDENTS
   async getTeams() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: true });
-        if (!error && data && data.length > 0) {
-          const teams = data.map(mapTeamFromDb);
-          setStorage('neura_teams', teams);
-          return teams;
-        }
-        if (!error && data && data.length === 0) {
-          for (const t of INITIAL_TEAMS) {
-            await supabase.from('teams').insert([mapTeamToDb(t)]);
-          }
-          setStorage('neura_teams', INITIAL_TEAMS);
-          return INITIAL_TEAMS;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch teams error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.error('Supabase fetch teams error:', error);
+      throw error;
     }
-    return getStorage('neura_teams', INITIAL_TEAMS);
+    if (!data || data.length === 0) {
+      await this.getEvents();
+      const insertRows = INITIAL_TEAMS.map(mapTeamToDb);
+      const { error: seedErr } = await supabase.from('teams').insert(insertRows);
+      if (seedErr) console.error('Error seeding teams:', seedErr);
+      return INITIAL_TEAMS;
+    }
+    return data.map(mapTeamFromDb);
   },
 
   async registerTeam({ teamName, eventId, leaderName, leaderPhone, leaderEmail, memberNames = [] }) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
     const events = await this.getEvents();
     const targetEvent = events.find(e => e.id === eventId) || { title: 'AI & DS Event' };
-    const teamId = 'TM-' + Math.floor(1000 + Math.random() * 9000);
+    const allTeams = await this.getTeams();
+
+    // 1. Filter existing teams for this event
+    const existingEventTeams = allTeams.filter(t => t.eventId === eventId);
+    
+    // 2. Enforce Max 20 Teams Limit per Event
+    if (existingEventTeams.length >= 20) {
+      throw new Error(`Registration Full! Maximum 20 teams allowed per event for "${targetEvent.title}".`);
+    }
+
+    // 3. Duplicate Participant Check for the Same Event
+    const cleanLeaderName = leaderName.trim();
+    const cleanMemberNames = memberNames.filter(n => n && n.trim().length > 0).map(n => n.trim());
+    const incomingNames = [cleanLeaderName, ...cleanMemberNames];
+
+    for (const existingTeam of existingEventTeams) {
+      const registeredNames = [
+        existingTeam.leaderName,
+        ...(existingTeam.members || []).map(m => m.name)
+      ].filter(Boolean).map(n => n.toLowerCase().trim());
+
+      for (const incName of incomingNames) {
+        if (registeredNames.includes(incName.toLowerCase())) {
+          throw new Error(`Participant "${incName}" is already registered in "${existingTeam.teamName}" for ${targetEvent.title}! Duplicate registrations for the same event are not allowed.`);
+        }
+      }
+    }
+
+    // 4. Sequential Team ID Format: TM-EVT-01 to TM-EVT-20
+    const nextNum = existingEventTeams.length + 1;
+    const numStr = String(nextNum).padStart(2, '0');
+    const evtCode = eventId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-3) || 'E1';
+    const teamId = `TM-${evtCode}-${numStr}`;
     const qrCodeToken = `QR-${teamId}`;
 
     const leaderUserId = 'STD-' + Math.floor(100 + Math.random() * 900);
@@ -322,24 +307,32 @@ export const storeService = {
     const members = [
       {
         userId: leaderUserId,
-        name: leaderName,
+        name: cleanLeaderName,
         password: leaderPassword,
         role: 'Leader',
         qrToken: `QR-${leaderUserId}-${teamId}`
       }
     ];
 
-    memberNames.filter(name => name.trim().length > 0).forEach((name) => {
+    cleanMemberNames.forEach((name) => {
       const uId = 'STD-' + Math.floor(100 + Math.random() * 900);
       const uPass = 'pass-' + Math.floor(100 + Math.random() * 900);
       members.push({
         userId: uId,
-        name: name.trim(),
+        name,
         password: uPass,
         role: 'Member',
         qrToken: `QR-${uId}-${teamId}`
       });
     });
+
+    // 5. Generate QR Code Data URL for Supabase storage
+    let qrCodeUrl = '';
+    try {
+      qrCodeUrl = await QRCode.toDataURL(qrCodeToken, { width: 300, margin: 2 });
+    } catch (err) {
+      console.warn('Failed to generate QR Data URL:', err);
+    }
 
     const newTeam = {
       id: teamId,
@@ -347,81 +340,98 @@ export const storeService = {
       eventId,
       eventTitle: targetEvent.title,
       leaderId: leaderUserId,
-      leaderName,
-      leaderPhone,
-      leaderEmail,
+      leaderName: cleanLeaderName,
+      leaderPhone: leaderPhone || '',
+      leaderEmail: leaderEmail || '',
       members,
       qrCodeToken,
+      qrCodeUrl,
       createdAt: new Date().toISOString()
     };
 
-    const teams = getStorage('neura_teams', INITIAL_TEAMS);
-    teams.push(newTeam);
-    setStorage('neura_teams', teams);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('teams').insert([mapTeamToDb(newTeam)]);
-      } catch (e) {
-        console.warn('Supabase register team error:', e);
-      }
+    const { error } = await supabase.from('teams').insert([mapTeamToDb(newTeam)]);
+    if (error) {
+      console.error('Supabase register team error:', error);
+      throw error;
     }
 
     return newTeam;
   },
 
-  async deleteTeam(teamId) {
-    const teams = getStorage('neura_teams', INITIAL_TEAMS).filter(t => t.id !== teamId);
-    setStorage('neura_teams', teams);
+  async updateTeamMembers(teamId, updatedMembers, managerPassword) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('teams').delete().eq('id', teamId);
-      } catch (e) {
-        console.warn('Supabase delete team error:', e);
-      }
+    const curPass = await this.getPasswords();
+    if (managerPassword !== curPass.manager && managerPassword !== curPass.admin) {
+      throw new Error('Incorrect Manager Password Confirmation! Action cancelled.');
+    }
+
+    const teams = await this.getTeams();
+    const target = teams.find(t => t.id === teamId);
+    if (!target) throw new Error('Team not found.');
+
+    target.members = updatedMembers;
+    const leader = updatedMembers.find(m => m.role === 'Leader') || updatedMembers[0];
+    if (leader) {
+      target.leaderId = leader.userId;
+      target.leaderName = leader.name;
+    }
+
+    const { error } = await supabase.from('teams').update(mapTeamToDb(target)).eq('id', teamId);
+    if (error) {
+      console.error('Supabase update team members error:', error);
+      throw error;
+    }
+
+    return target;
+  },
+
+  async deleteTeam(teamId) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const { error } = await supabase.from('teams').delete().eq('id', teamId);
+    if (error) {
+      console.error('Supabase delete team error:', error);
+      throw error;
     }
   },
 
   async updateTeam(updatedTeam) {
-    const teams = getStorage('neura_teams', INITIAL_TEAMS).map(t => t.id === updatedTeam.id ? updatedTeam : t);
-    setStorage('neura_teams', teams);
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('teams').update(mapTeamToDb(updatedTeam)).eq('id', updatedTeam.id);
-      } catch (e) {
-        console.warn('Supabase update team error:', e);
-      }
+    const { error } = await supabase.from('teams').update(mapTeamToDb(updatedTeam)).eq('id', updatedTeam.id);
+    if (error) {
+      console.error('Supabase update team error:', error);
+      throw error;
     }
   },
 
   // 4. ATTENDANCE
   async getAttendance() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('attendance').select('*');
-        if (!error && data) {
-          const attMap = {};
-          data.forEach(row => {
-            attMap[row.team_id] = {
-              present: row.present,
-              markedAt: row.marked_at,
-              markedBy: row.marked_by
-            };
-          });
-          setStorage('neura_attendance', attMap);
-          return attMap;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch attendance error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const { data, error } = await supabase.from('attendance').select('*');
+    if (error) {
+      console.error('Supabase fetch attendance error:', error);
+      throw error;
     }
-    return getStorage('neura_attendance', INITIAL_ATTENDANCE);
+
+    const attMap = {};
+    if (data) {
+      data.forEach(row => {
+        attMap[row.team_id] = {
+          present: row.present,
+          markedAt: row.marked_at,
+          markedBy: row.marked_by
+        };
+      });
+    }
+    return attMap;
   },
 
   async markAttendance(teamOrUserToken, markedBy = 'Manager') {
-    const attendance = await this.getAttendance();
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
     const teams = await this.getTeams();
     
     let targetTeam = teams.find(t => t.id === teamOrUserToken || t.qrCodeToken === teamOrUserToken);
@@ -440,136 +450,135 @@ export const storeService = {
     }
 
     const markedAt = new Date().toISOString();
-    attendance[targetTeam.id] = {
+    const { error } = await supabase.from('attendance').upsert([{
+      team_id: targetTeam.id,
       present: true,
-      markedAt,
-      markedBy
-    };
+      marked_at: markedAt,
+      marked_by: markedBy
+    }]);
 
-    setStorage('neura_attendance', attendance);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('attendance').upsert([{
-          team_id: targetTeam.id,
-          present: true,
-          marked_at: markedAt,
-          marked_by: markedBy
-        }]);
-      } catch (e) {
-        console.warn('Supabase mark attendance error:', e);
-      }
+    if (error) {
+      console.error('Supabase mark attendance error:', error);
+      throw error;
     }
 
     return { success: true, team: targetTeam, message: `Attendance marked for Team ${targetTeam.teamName}!` };
   },
 
   async toggleAttendance(teamId) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
     const attendance = await this.getAttendance();
     const current = attendance[teamId]?.present || false;
     const markedAt = new Date().toISOString();
     const newPresentState = !current;
 
-    attendance[teamId] = {
+    const { error } = await supabase.from('attendance').upsert([{
+      team_id: teamId,
+      present: newPresentState,
+      marked_at: markedAt,
+      marked_by: 'Manager Toggle'
+    }]);
+
+    if (error) {
+      console.error('Supabase toggle attendance error:', error);
+      throw error;
+    }
+
+    return {
       present: newPresentState,
       markedAt,
       markedBy: 'Manager Toggle'
     };
-    setStorage('neura_attendance', attendance);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('attendance').upsert([{
-          team_id: teamId,
-          present: newPresentState,
-          marked_at: markedAt,
-          marked_by: 'Manager Toggle'
-        }]);
-      } catch (e) {
-        console.warn('Supabase toggle attendance error:', e);
-      }
-    }
-
-    return attendance[teamId];
   },
 
   // 5. JUDGES & SCORES
   async getJudges() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('judges').select('*');
-        if (!error && data && data.length > 0) {
-          const judges = data.map(mapJudgeFromDb);
-          setStorage('neura_judges', judges);
-          return judges;
-        }
-        if (!error && data && data.length === 0) {
-          for (const j of INITIAL_JUDGES) {
-            await supabase.from('judges').insert([mapJudgeToDb(j)]);
-          }
-          setStorage('neura_judges', INITIAL_JUDGES);
-          return INITIAL_JUDGES;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch judges error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const { data, error } = await supabase.from('judges').select('*');
+    if (error) {
+      console.error('Supabase fetch judges error:', error);
+      throw error;
     }
-    return getStorage('neura_judges', INITIAL_JUDGES);
+
+    if (!data || data.length === 0) {
+      const insertRows = INITIAL_JUDGES.map(mapJudgeToDb);
+      const { error: seedErr } = await supabase.from('judges').insert(insertRows);
+      if (seedErr) console.error('Error seeding judges:', seedErr);
+      return INITIAL_JUDGES;
+    }
+
+    return data.map(mapJudgeFromDb);
   },
 
   async addJudge(judge) {
-    const newJudge = { ...judge, id: judge.id || 'jd-' + Date.now() };
-    const judges = getStorage('neura_judges', INITIAL_JUDGES);
-    judges.push(newJudge);
-    setStorage('neura_judges', judges);
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('judges').insert([mapJudgeToDb(newJudge)]);
-      } catch (e) {
-        console.warn('Supabase add judge error:', e);
-      }
+    const newJudge = { ...judge, id: judge.id || 'jd-' + Date.now() };
+    const { error } = await supabase.from('judges').insert([mapJudgeToDb(newJudge)]);
+    if (error) {
+      console.error('Supabase add judge error:', error);
+      throw error;
     }
+
     return newJudge;
   },
 
   async getScores() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('scores').select('*');
-        if (!error && data) {
-          const scoresMap = {};
-          data.forEach(row => {
-            const key = `${row.event_id}_${row.team_id}_${row.judge_id}`;
-            scoresMap[key] = {
-              id: row.id,
-              eventId: row.event_id,
-              teamId: row.team_id,
-              judgeId: row.judge_id,
-              criteria: row.criteria,
-              totalScore: Number(row.total_score || 0),
-              feedback: row.feedback,
-              updatedAt: row.updated_at
-            };
-          });
-          setStorage('neura_scores', scoresMap);
-          return scoresMap;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch scores error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const { data, error } = await supabase.from('scores').select('*');
+    if (error) {
+      console.error('Supabase fetch scores error:', error);
+      throw error;
     }
-    return getStorage('neura_scores', {});
+
+    const scoresMap = {};
+    if (data) {
+      data.forEach(row => {
+        const key = `${row.event_id}_${row.team_id}_${row.judge_id}`;
+        scoresMap[key] = {
+          id: row.id,
+          eventId: row.event_id,
+          teamId: row.team_id,
+          judgeId: row.judge_id,
+          criteria: row.criteria,
+          totalScore: Number(row.total_score || 0),
+          feedback: row.feedback,
+          updatedAt: row.updated_at
+        };
+      });
+    }
+    return scoresMap;
   },
 
   async saveScore({ eventId, teamId, judgeId, criteria, feedback }) {
-    const scores = getStorage('neura_scores', {});
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const scores = await this.getScores();
     const key = `${eventId}_${teamId}_${judgeId}`;
     const scoreId = scores[key]?.id || `sc-${Date.now()}`;
     const totalScore = Object.values(criteria).reduce((sum, val) => sum + Number(val || 0), 0);
     const updatedAt = new Date().toISOString();
-    
-    scores[key] = {
+
+    const { error } = await supabase.from('scores').upsert([{
+      id: scoreId,
+      event_id: eventId,
+      team_id: teamId,
+      judge_id: judgeId,
+      criteria,
+      total_score: totalScore,
+      feedback,
+      updated_at: updatedAt
+    }]);
+
+    if (error) {
+      console.error('Supabase save score error:', error);
+      throw error;
+    }
+
+    return {
       id: scoreId,
       eventId,
       teamId,
@@ -579,68 +588,43 @@ export const storeService = {
       feedback,
       updatedAt
     };
-
-    setStorage('neura_scores', scores);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('scores').upsert([{
-          id: scoreId,
-          event_id: eventId,
-          team_id: teamId,
-          judge_id: judgeId,
-          criteria,
-          total_score: totalScore,
-          feedback,
-          updated_at: updatedAt
-        }]);
-      } catch (e) {
-        console.warn('Supabase save score error:', e);
-      }
-    }
-
-    return scores[key];
   },
 
   // 6. JUDGING LOCK STATUS
   async getJudgingLock() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.from('judging_locks').select('*');
-        if (!error && data) {
-          const locksMap = {};
-          data.forEach(row => {
-            locksMap[row.event_id] = {
-              isCompleted: row.is_completed,
-              completedAt: row.completed_at
-            };
-          });
-          setStorage('neura_judging_locks', locksMap);
-          return locksMap;
-        }
-      } catch (e) {
-        console.warn('Supabase fetch judging locks error:', e);
-      }
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const { data, error } = await supabase.from('judging_locks').select('*');
+    if (error) {
+      console.error('Supabase fetch judging locks error:', error);
+      throw error;
     }
-    return getStorage('neura_judging_locks', {});
+
+    const locksMap = {};
+    if (data) {
+      data.forEach(row => {
+        locksMap[row.event_id] = {
+          isCompleted: row.is_completed,
+          completedAt: row.completed_at
+        };
+      });
+    }
+    return locksMap;
   },
 
   async finalizeJudging(eventId) {
-    const locks = getStorage('neura_judging_locks', {});
-    const completedAt = new Date().toISOString();
-    locks[eventId] = { isCompleted: true, completedAt };
-    setStorage('neura_judging_locks', locks);
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('judging_locks').upsert([{
-          event_id: eventId,
-          is_completed: true,
-          completed_at: completedAt
-        }]);
-      } catch (e) {
-        console.warn('Supabase finalize judging lock error:', e);
-      }
+    const completedAt = new Date().toISOString();
+    const { error } = await supabase.from('judging_locks').upsert([{
+      event_id: eventId,
+      is_completed: true,
+      completed_at: completedAt
+    }]);
+
+    if (error) {
+      console.error('Supabase finalize judging lock error:', error);
+      throw error;
     }
   },
 
@@ -660,4 +644,3 @@ export const storeService = {
     return JSON.stringify(backupData, null, 2);
   }
 };
-

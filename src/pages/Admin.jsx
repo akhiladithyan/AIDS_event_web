@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import { isSupabaseConfigured } from '../services/supabase';
-import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Key, CheckCircle, Lock, Save, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Key, CheckCircle, Lock, Save, RefreshCw, ChevronDown, ChevronUp, Users } from 'lucide-react';
 
 const Admin = () => {
   const [password, setPassword] = useState('');
@@ -12,6 +12,7 @@ const Admin = () => {
   const [teams, setTeams] = useState([]);
   const [passwords, setPasswords] = useState({});
   const [activeTab, setActiveTab] = useState('events');
+  const [expandedTeamId, setExpandedTeamId] = useState(null);
 
   // New Event Form Modal
   const [showEventModal, setShowEventModal] = useState(false);
@@ -334,32 +335,81 @@ const Admin = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {teams.map(t => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>{t.id}</td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700 }}>{t.teamName}</td>
-                      <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
-                      <td style={{ padding: '14px 16px' }}>
-                        {t.leaderName} <div style={{ fontSize: '0.78rem', color: 'var(--text-subtle)' }}>{t.leaderPhone}</div>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        {t.members.map(m => m.name).join(', ')}
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Remove team ${t.teamName}?`)) {
-                              storeService.deleteTeam(t.id);
-                              loadAdminData();
-                            }
+                  {teams.map(t => {
+                    const isExpanded = expandedTeamId === t.id;
+                    return (
+                      <React.Fragment key={t.id}>
+                        <tr
+                          onClick={() => setExpandedTeamId(isExpanded ? null : t.id)}
+                          style={{
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            cursor: 'pointer',
+                            background: isExpanded ? 'rgba(102, 84, 181, 0.15)' : 'transparent'
                           }}
-                          style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem' }}
                         >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                          <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>{t.id}</td>
+                          <td style={{ padding: '14px 16px', fontWeight: 700 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {isExpanded ? <ChevronUp size={16} color="#a395f3" /> : <ChevronDown size={16} color="rgba(255,255,255,0.4)" />}
+                              {t.teamName}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
+                          <td style={{ padding: '14px 16px' }}>
+                            {t.leaderName} <div style={{ fontSize: '0.78rem', color: 'var(--text-subtle)' }}>{t.leaderPhone}</div>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span className="badge-purple" style={{ fontSize: '0.75rem' }}>
+                              {t.members.length} Members
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={async () => {
+                                if (confirm(`Remove team ${t.teamName}?`)) {
+                                  await storeService.deleteTeam(t.id);
+                                  await loadAdminData();
+                                }
+                              }}
+                              style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem' }}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* SLIDE DOWN PERSON DETAILS BREAKDOWN */}
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '16px 20px', background: 'rgba(12, 8, 24, 0.7)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
+                              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Users size={18} color="#4ade80" />
+                                <strong style={{ fontSize: '1rem', color: '#fff' }}>Detailed Person Roster ({t.teamName})</strong>
+                              </div>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+                                {t.members.map((m, idx) => (
+                                  <div key={m.userId || idx} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                      <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{m.name}</strong>
+                                      <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.72rem' }}>
+                                        {m.role}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                      <div>User ID: <code style={{ color: '#4ade80' }}>{m.userId}</code></div>
+                                      <div>Password: <code style={{ color: '#fbbf24' }}>{m.password}</code></div>
+                                      <div>QR Token: <span style={{ fontSize: '0.72rem', wordBreak: 'break-all', opacity: 0.8 }}>{m.qrToken}</span></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

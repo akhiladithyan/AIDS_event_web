@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storeService } from '../services/store';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw } from 'lucide-react';
+import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck } from 'lucide-react';
 
 const Manager = () => {
   const [password, setPassword] = useState('');
@@ -13,6 +13,14 @@ const Manager = () => {
   const [attendance, setAttendance] = useState({});
   const [selectedEventId, setSelectedEventId] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedTeamId, setExpandedTeamId] = useState(null);
+
+  // Member Editing & Manager Password Confirmation Modal State
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [membersDraft, setMembersDraft] = useState([]);
+  const [showPassConfirmModal, setShowPassConfirmModal] = useState(false);
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [confirmError, setConfirmError] = useState('');
 
   // Scanner & Scan Feedback State
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -130,6 +138,81 @@ const Manager = () => {
     await loadManagerData();
   };
 
+  const handleDownloadEventWiseCSV = () => {
+    let csv = 'Event Title,Team ID,Team Name,Participant Name,Role,User ID,Password,Phone,Email,Attendance Status\n';
+    events.forEach(evt => {
+      const eventTeams = teams.filter(t => t.eventId === evt.id);
+      eventTeams.forEach(t => {
+        const isPresent = attendance[t.id]?.present ? 'PRESENT' : 'ABSENT';
+        (t.members || []).forEach(m => {
+          csv += `"${evt.title}","${t.id}","${t.teamName}","${m.name}","${m.role}","${m.userId}","${m.password}","${t.leaderPhone}","${t.leaderEmail}","${isPresent}"\n`;
+        });
+      });
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neura_event_wise_roster_${Date.now()}.csv`;
+    a.click();
+  };
+
+  const handleOpenEditMembersModal = (team) => {
+    setEditingTeam(team);
+    setMembersDraft(JSON.parse(JSON.stringify(team.members || [])));
+    setConfirmPasswordInput('');
+    setConfirmError('');
+    setShowPassConfirmModal(true);
+  };
+
+  const handleAddMemberToDraft = () => {
+    const newIdx = membersDraft.length + 1;
+    const uId = 'STD-' + Math.floor(100 + Math.random() * 900);
+    const uPass = 'pass-' + Math.floor(100 + Math.random() * 900);
+    setMembersDraft([
+      ...membersDraft,
+      {
+        userId: uId,
+        name: `New Member ${newIdx}`,
+        password: uPass,
+        role: 'Member',
+        qrToken: `QR-${uId}-${editingTeam.id}`
+      }
+    ]);
+  };
+
+  const handleUpdateMemberDraftName = (index, name) => {
+    const next = [...membersDraft];
+    next[index].name = name;
+    setMembersDraft(next);
+  };
+
+  const handleRemoveMemberFromDraft = (index) => {
+    if (membersDraft.length <= 1) {
+      alert('A team must have at least 1 member.');
+      return;
+    }
+    const next = membersDraft.filter((_, idx) => idx !== index);
+    setMembersDraft(next);
+  };
+
+  const handleSaveMembersWithPassword = async (e) => {
+    e.preventDefault();
+    if (!editingTeam) return;
+    try {
+      await storeService.updateTeamMembers(editingTeam.id, membersDraft, confirmPasswordInput);
+      setShowPassConfirmModal(false);
+      setEditingTeam(null);
+      setConfirmPasswordInput('');
+      setConfirmError('');
+      alert('Team member details updated and saved to Supabase successfully!');
+      await loadManagerData();
+    } catch (err) {
+      setConfirmError(err.message || 'Verification failed');
+    }
+  };
+
   const filteredTeams = teams.filter(t => {
     const matchesEvent = selectedEventId === 'All' || t.eventId === selectedEventId;
     const matchesSearch = t.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -202,15 +285,24 @@ const Manager = () => {
               <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Event Manager Console</h2>
             </div>
 
-            <button
-              onClick={() => {
-                setOnSpotEventId(events[0]?.id || '');
-                setShowOnSpotModal(true);
-              }}
-              className="btn-primary"
-            >
-              <UserPlus size={18} /> On-Spot Registration
-            </button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={handleDownloadEventWiseCSV}
+                className="btn-secondary"
+              >
+                <Download size={18} /> Export Event-Wise CSV
+              </button>
+
+              <button
+                onClick={() => {
+                  setOnSpotEventId(events[0]?.id || '');
+                  setShowOnSpotModal(true);
+                }}
+                className="btn-primary"
+              >
+                <UserPlus size={18} /> On-Spot Registration
+              </button>
+            </div>
           </div>
 
           {/* SCANNER & ATTENDANCE ACTION BAR */}
@@ -246,14 +338,14 @@ const Manager = () => {
                   <QrCode size={18} color="#4ade80" /> Manual Token Verification
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-                  Enter Team ID (e.g. <code>TM-9081</code>) or QR token string directly.
+                  Enter Team ID (e.g. <code>TM-E1-01</code>) or QR token string directly.
                 </p>
 
                 <form onSubmit={handleManualScanSubmit} style={{ display: 'flex', gap: 10 }}>
                   <input
                     type="text"
                     className="glass-input"
-                    placeholder="Enter TM-XXXX or QR-STD-XXX"
+                    placeholder="Enter TM-E1-01 or QR-STD-XXX"
                     value={manualToken}
                     onChange={e => setManualToken(e.target.value)}
                   />
@@ -328,49 +420,105 @@ const Manager = () => {
                   <th style={{ padding: '12px 16px' }}>Event</th>
                   <th style={{ padding: '12px 16px' }}>Leader Contact</th>
                   <th style={{ padding: '12px 16px' }}>Attendance Status</th>
-                  <th style={{ padding: '12px 16px' }}>Judging Status</th>
+                  <th style={{ padding: '12px 16px' }}>Members & Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTeams.map(t => {
                   const isPresent = attendance[t.id]?.present || false;
+                  const isExpanded = expandedTeamId === t.id;
                   return (
-                    <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>{t.id}</td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700 }}>{t.teamName}</td>
-                      <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
-                      <td style={{ padding: '14px 16px' }}>
-                        {t.leaderName} ({t.leaderPhone})
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <button
-                          onClick={() => handleToggleAttendance(t.id)}
-                          style={{
-                            padding: '6px 16px',
-                            borderRadius: 100,
-                            border: isPresent ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 74, 64, 0.5)',
-                            background: isPresent ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 74, 64, 0.2)',
-                            color: isPresent ? '#4ade80' : '#ff8a82',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            fontSize: '0.82rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}
-                        >
-                          {isPresent ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                          {isPresent ? 'PRESENT' : 'ABSENT'}
-                        </button>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        {isPresent ? (
-                          <span className="badge-purple" style={{ fontSize: '0.75rem' }}>Eligible for Judging</span>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>Requires Attendance</span>
-                        )}
-                      </td>
-                    </tr>
+                    <React.Fragment key={t.id}>
+                      <tr
+                        onClick={() => setExpandedTeamId(isExpanded ? null : t.id)}
+                        style={{
+                          borderBottom: '1px solid rgba(255,255,255,0.06)',
+                          cursor: 'pointer',
+                          background: isExpanded ? 'rgba(102, 84, 181, 0.15)' : 'transparent'
+                        }}
+                      >
+                        <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>{t.id}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 700 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {isExpanded ? <ChevronUp size={16} color="#a395f3" /> : <ChevronDown size={16} color="rgba(255,255,255,0.4)" />}
+                            {t.teamName}
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          {t.leaderName} ({t.leaderPhone})
+                        </td>
+                        <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleToggleAttendance(t.id)}
+                            style={{
+                              padding: '6px 16px',
+                              borderRadius: 100,
+                              border: isPresent ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 74, 64, 0.5)',
+                              background: isPresent ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 74, 64, 0.2)',
+                              color: isPresent ? '#4ade80' : '#ff8a82',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontSize: '0.82rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            {isPresent ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                            {isPresent ? 'PRESENT' : 'ABSENT'}
+                          </button>
+                        </td>
+                        <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleOpenEditMembersModal(t)}
+                            className="btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', gap: 6 }}
+                          >
+                            <Edit size={14} /> Edit Members
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* SLIDE DOWN DETAILS FOR MANAGER */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '16px 20px', background: 'rgba(12, 8, 24, 0.7)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
+                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Users size={18} color="#a395f3" />
+                                <strong style={{ fontSize: '1rem', color: '#fff' }}>Team Member Roster ({t.teamName})</strong>
+                              </div>
+                              <button
+                                onClick={() => handleOpenEditMembersModal(t)}
+                                className="btn-primary"
+                                style={{ padding: '6px 14px', fontSize: '0.8rem', gap: 6 }}
+                              >
+                                <Edit size={14} /> Modify Team Members
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+                              {t.members.map((m, idx) => (
+                                <div key={m.userId || idx} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{m.name}</strong>
+                                    <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.72rem' }}>
+                                      {m.role}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div>User ID: <code style={{ color: '#4ade80' }}>{m.userId}</code></div>
+                                    <div>Password: <code style={{ color: '#fbbf24' }}>{m.password}</code></div>
+                                    <div>QR Token: <span style={{ fontSize: '0.72rem', wordBreak: 'break-all', opacity: 0.8 }}>{m.qrToken}</span></div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -407,6 +555,88 @@ const Manager = () => {
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
                     <button type="button" onClick={() => setShowOnSpotModal(false)} className="btn-secondary">Cancel</button>
                     <button type="submit" className="btn-primary">Register & Mark Present</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MANAGER PASSWORD CONFIRMATION MODAL FOR MEMBER EDITING */}
+          {showPassConfirmModal && editingTeam && (
+            <div className="modal-overlay" onClick={() => setShowPassConfirmModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <ShieldCheck size={26} color="#a395f3" />
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Edit Team Roster</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Editing member details for <strong>{editingTeam.teamName}</strong> ({editingTeam.id})
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 260, overflowY: 'auto', marginBottom: 18, paddingRight: 6 }}>
+                  {membersDraft.map((m, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 10 }}>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        value={m.name}
+                        onChange={e => handleUpdateMemberDraftName(idx, e.target.value)}
+                        placeholder="Member Name"
+                        style={{ flex: 1 }}
+                        required
+                      />
+                      <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                        {m.role}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMemberFromDraft(idx)}
+                        style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: 8, borderRadius: 8, cursor: 'pointer' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddMemberToDraft}
+                    className="btn-secondary"
+                    style={{ fontSize: '0.85rem', padding: '8px 14px', gap: 6 }}
+                  >
+                    <Plus size={16} /> Add Member to Team
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveMembersWithPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: 'rgba(102, 84, 181, 0.15)', border: '1px solid rgba(131, 114, 216, 0.4)', borderRadius: 12, padding: 14 }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: 6, color: '#fff' }}>
+                      Enter Manager Security Password to Confirm *
+                    </label>
+                    <input
+                      type="password"
+                      className="glass-input"
+                      placeholder="Manager Password (manager123)"
+                      value={confirmPasswordInput}
+                      onChange={e => setConfirmPasswordInput(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {confirmError && (
+                    <div style={{ color: '#ff8a82', fontSize: '0.85rem', fontWeight: 600 }}>
+                      ⚠️ {confirmError}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 6 }}>
+                    <button type="button" onClick={() => setShowPassConfirmModal(false)} className="btn-secondary">
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-primary">
+                      Confirm & Save to Supabase
+                    </button>
                   </div>
                 </form>
               </div>
