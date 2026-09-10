@@ -60,8 +60,8 @@ const ScrollExpand = ({
 
   const applyProgress = useCallback(p => {
     const frame = frameRef.current;
+    if (!frame) return;
     const media = mediaRef.current;
-    if (!frame || !media) return;
     const c = propsRef.current;
 
     const e = smoothstep(0, 1, p);
@@ -74,10 +74,18 @@ const ScrollExpand = ({
     const h = c.startHeight + (100 - c.startHeight) * e;
     const ix = Math.max(0, (100 - w) / 2);
     const iy = Math.max(0, (100 - h) / 2);
-    const r = c.startRadius + (c.endRadius - c.startRadius) * e;
-    frame.style.clipPath = `inset(${iy}% ${ix}% ${iy}% ${ix}% round ${r}px)`;
+    const r = (1 - e) * c.startRadius;
 
-    media.style.transform = `scale(${c.mediaZoom + (1 - c.mediaZoom) * e})`;
+    // Expanded inset window revealing the animated gradient background underneath
+    if (e >= 0.999) {
+      frame.style.clipPath = 'none';
+    } else {
+      frame.style.clipPath = `inset(${iy}% ${ix}% ${iy}% ${ix}% round ${r}px)`;
+    }
+
+    if (stageRef.current) {
+      stageRef.current.style.backgroundColor = `rgba(10, 6, 20, ${1 - smoothstep(0.7, 1, p)})`;
+    }
 
     if (scrimRef.current) scrimRef.current.style.opacity = `${c.overlayScrim * e}`;
 
@@ -130,8 +138,8 @@ const ScrollExpand = ({
       if (!c.enabled) return 1;
       const span = stageH * Math.max(0.01, c.scrollDistance);
       if (c.useWindowScroll) {
-        const top = track.getBoundingClientRect().top;
-        return clamp(-top / span, 0, 1);
+        const rect = track.getBoundingClientRect();
+        return clamp(-rect.top / span, 0, 1);
       }
       return clamp(root.scrollTop / span, 0, 1);
     };
@@ -194,7 +202,7 @@ const ScrollExpand = ({
     <div ref={mediaRef} className="scroll-expand__media" style={{ width: '100%', height: '100%' }}>
       {customMedia}
     </div>
-  ) : mediaType === 'video' ? (
+  ) : mediaType === 'video' && src ? (
     <video
       ref={mediaRef}
       className="scroll-expand__media"
@@ -205,9 +213,9 @@ const ScrollExpand = ({
       loop
       playsInline
     />
-  ) : (
+  ) : src ? (
     <img ref={mediaRef} className="scroll-expand__media" src={src} alt={alt} draggable={false} />
-  );
+  ) : null;
 
   return (
     <div

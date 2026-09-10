@@ -113,21 +113,33 @@ const Judge = () => {
 
   const handleFinalizeEventJudging = async (e) => {
     e.preventDefault();
-    const curPass = await storeService.getPasswords();
-    if (managerVerificationPass === curPass.manager || managerVerificationPass === curPass.admin) {
-      await storeService.finalizeJudging(selectedEventId);
-      setShowLockModal(false);
-      setManagerVerificationPass('');
-      setLockError('');
-      await loadJudgeData();
-      confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
-    } else {
-      setLockError('Incorrect Manager Password verification!');
+    try {
+      const isManagerValid = await storeService.verifyManagerPassword(managerVerificationPass);
+      const isAdminValid = !isManagerValid ? await storeService.verifyAdminPassword(managerVerificationPass) : false;
+
+      if (isManagerValid || isAdminValid) {
+        await storeService.finalizeJudging(selectedEventId);
+        setShowLockModal(false);
+        setManagerVerificationPass('');
+        setLockError('');
+        await loadJudgeData();
+        confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+      } else {
+        setLockError('Incorrect Manager Password verification via Supabase!');
+      }
+    } catch (err) {
+      setLockError(err.message || 'Verification failed');
     }
   };
 
-  // Only teams marked present in attendance are eligible for judging!
-  const presentTeamsForSelectedEvent = teams.filter(t => t.eventId === selectedEventId && attendance[t.id]?.present);
+  // Teams with at least 1 present member (or team-level attendance) are eligible for judging!
+  const presentTeamsForSelectedEvent = teams.filter(t => {
+    if (t.eventId !== selectedEventId) return false;
+    const teamAtt = attendance[t.id] || {};
+    const hasTeamPresent = teamAtt.present || false;
+    const hasAnyMemberPresent = Object.values(teamAtt.studentScans || {}).some(s => s.attendance);
+    return hasTeamPresent || hasAnyMemberPresent;
+  });
 
   // Compute Leaderboard Ranking
   const leaderboard = presentTeamsForSelectedEvent.map(t => {
@@ -313,94 +325,132 @@ const Judge = () => {
             <div>
               {selectedTeam && !currentEventLock ? (
                 /* SCORING FORM */
-                <div className="glass-panel" style={{ padding: 28 }}>
-                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4a40', marginBottom: 4 }}>
-                    Evaluate: {selectedTeam.teamName}
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-                    Enter scores for each criterion out of 10 points.
-                  </p>
-
-                  <form onSubmit={handleSaveScoresSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                        <span>Innovation & Originality</span>
-                        <strong>{innovationScore} / 10 pts</strong>
+                (() => {
+                  const scoreKey = `${selectedEventId}_${selectedTeam.id}_${currentJudge.id}`;
+                  const isScoreFixed = Boolean(scores[scoreKey]);
+                  return (
+                    <div className="glass-panel" style={{ padding: 28 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4a40', margin: 0 }}>
+                          Evaluate: {selectedTeam.teamName}
+                        </h3>
+                        {isScoreFixed && (
+                          <span className="badge-purple" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Lock size={13} /> Score Fixed
+                          </span>
+                        )}
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={innovationScore}
-                        onChange={e => setInnovationScore(e.target.value)}
-                        style={{ width: '100%', accentColor: '#ef4a40' }}
-                      />
-                    </div>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+                        {isScoreFixed
+                          ? 'This team score has been submitted and fixed. Modifications are disabled.'
+                          : 'Enter scores for each criterion out of 10 points.'}
+                      </p>
 
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                        <span>Technical Execution & Feasibility</span>
-                        <strong>{executionScore} / 10 pts</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={executionScore}
-                        onChange={e => setExecutionScore(e.target.value)}
-                        style={{ width: '100%', accentColor: '#ef4a40' }}
-                      />
-                    </div>
+                      <form onSubmit={handleSaveScoresSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
+                            <span>Innovation & Originality</span>
+                            <strong>{innovationScore} / 10 pts</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="10"
+                            disabled={isScoreFixed}
+                            value={innovationScore}
+                            onChange={e => setInnovationScore(e.target.value)}
+                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
+                          />
+                        </div>
 
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                        <span>Presentation & UI/UX Clarity</span>
-                        <strong>{presentationScore} / 10 pts</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={presentationScore}
-                        onChange={e => setPresentationScore(e.target.value)}
-                        style={{ width: '100%', accentColor: '#ef4a40' }}
-                      />
-                    </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
+                            <span>Technical Execution & Feasibility</span>
+                            <strong>{executionScore} / 10 pts</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="10"
+                            disabled={isScoreFixed}
+                            value={executionScore}
+                            onChange={e => setExecutionScore(e.target.value)}
+                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
+                          />
+                        </div>
 
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                        <span>Q&A & Defense</span>
-                        <strong>{qaScore} / 10 pts</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={qaScore}
-                        onChange={e => setQaScore(e.target.value)}
-                        style={{ width: '100%', accentColor: '#ef4a40' }}
-                      />
-                    </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
+                            <span>Presentation & UI/UX Clarity</span>
+                            <strong>{presentationScore} / 10 pts</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="10"
+                            disabled={isScoreFixed}
+                            value={presentationScore}
+                            onChange={e => setPresentationScore(e.target.value)}
+                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
+                          />
+                        </div>
 
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>Judge Feedback / Remarks</label>
-                      <textarea
-                        className="glass-input"
-                        rows={3}
-                        placeholder="Constructive feedback for team..."
-                        value={feedbackText}
-                        onChange={e => setFeedbackText(e.target.value)}
-                      />
-                    </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
+                            <span>Q&A & Defense</span>
+                            <strong>{qaScore} / 10 pts</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="10"
+                            disabled={isScoreFixed}
+                            value={qaScore}
+                            onChange={e => setQaScore(e.target.value)}
+                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
+                          />
+                        </div>
 
-                    <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 10 }}>
-                      <button type="button" onClick={() => setSelectedTeam(null)} className="btn-secondary">Cancel</button>
-                      <button type="submit" className="btn-primary">
-                        <Save size={16} /> Save Score ({Number(innovationScore) + Number(executionScore) + Number(presentationScore) + Number(qaScore)} pts)
-                      </button>
+                        <div>
+                          <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>Judge Feedback / Remarks</label>
+                          <textarea
+                            className="glass-input"
+                            rows={3}
+                            disabled={isScoreFixed}
+                            placeholder="Constructive feedback for team..."
+                            value={feedbackText}
+                            onChange={e => setFeedbackText(e.target.value)}
+                            style={{ opacity: isScoreFixed ? 0.6 : 1 }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 10 }}>
+                          <button type="button" onClick={() => setSelectedTeam(null)} className="btn-secondary">Close</button>
+                          {!isScoreFixed ? (
+                            <button type="submit" className="btn-primary">
+                              <Save size={16} /> Submit & Fix Score ({Number(innovationScore) + Number(executionScore) + Number(presentationScore) + Number(qaScore)} pts)
+                            </button>
+                          ) : (
+                            <div style={{
+                              background: 'rgba(34, 197, 94, 0.2)',
+                              border: '1px solid rgba(34, 197, 94, 0.5)',
+                              color: '#4ade80',
+                              padding: '10px 16px',
+                              borderRadius: 12,
+                              fontWeight: 700,
+                              fontSize: '0.88rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}>
+                              <Lock size={15} /> Score Fixed & Locked
+                            </div>
+                          )}
+                        </div>
+                      </form>
                     </div>
-                  </form>
-                </div>
+                  );
+                })()
               ) : (
                 /* LIVE EVENT LEADERBOARD */
                 <div className="glass-panel" style={{ padding: 28 }}>

@@ -22,8 +22,12 @@ const StudentProfile = () => {
     }
   }, []);
 
+  const [eventDetails, setEventDetails] = useState(null);
+  const [attendanceInfo, setAttendanceInfo] = useState({});
+
   const loadStudentProfile = async (uId, uPass) => {
     const teams = await storeService.getTeams();
+    const events = await storeService.getEvents();
     let foundMember = null;
     let foundTeam = null;
 
@@ -39,14 +43,25 @@ const StudentProfile = () => {
     if (foundMember && foundTeam) {
       setLoggedUser(foundMember);
       setTeamInfo(foundTeam);
+      const evt = events.find(e => e.id === foundTeam.eventId);
+      setEventDetails(evt || null);
       setLoginError('');
+
+      // Fetch live attendance status for team & student
+      try {
+        const attMap = await storeService.getAttendance();
+        setAttendanceInfo(attMap[foundTeam.id] || {});
+      } catch (e) {
+        console.error('Failed to load attendance info:', e);
+      }
 
       // Store session (sessionStorage: cleared on tab close, no cross-account bleed)
       sessionStorage.setItem('neura_student_session', JSON.stringify({ userId: foundMember.userId, password: foundMember.password }));
 
       // Generate high quality QR code
       try {
-        const url = await QRCode.toDataURL(foundMember.qrToken, { width: 300, margin: 2 });
+        const qrTokenToUse = foundMember.qrToken || `QR-${foundMember.userId}-${foundTeam.id}`;
+        const url = await QRCode.toDataURL(qrTokenToUse, { width: 300, margin: 2 });
         setQrCodeUrl(url);
       } catch (e) {
         console.error('QR generation error:', e);
@@ -69,8 +84,102 @@ const StudentProfile = () => {
     setPassword('');
   };
 
-  const handlePrintCard = () => {
-    window.print();
+  const handleDownloadQR = async () => {
+    if (!qrCodeUrl || !loggedUser || !teamInfo) return;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const canvasWidth = 600;
+      const canvasHeight = 740;
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      // Dark background gradient matching theme
+      const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+      grad.addColorStop(0, '#130a2a');
+      grad.addColorStop(1, '#090514');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Decorative Top Border
+      const topGrad = ctx.createLinearGradient(0, 0, canvasWidth, 0);
+      topGrad.addColorStop(0, '#ef4a40');
+      topGrad.addColorStop(1, '#6654b5');
+      ctx.fillStyle = topGrad;
+      ctx.fillRect(0, 0, canvasWidth, 12);
+
+      // Event Name & Header
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#a395f3';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText((teamInfo.eventTitle || 'AI & DS Event 2026').toUpperCase(), canvasWidth / 2, 54);
+
+      // Card Badge / Tag
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.beginPath();
+      ctx.roundRect(canvasWidth / 2 - 120, 70, 240, 32, 16);
+      ctx.fill();
+      ctx.fillStyle = '#ef4a40';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('OFFICIAL EVENT PASS', canvasWidth / 2, 91);
+
+      // Load QR image onto canvas
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = qrCodeUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      // White QR background frame
+      const qrSize = 360;
+      const qrX = (canvasWidth - qrSize) / 2;
+      const qrY = 120;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 24);
+      ctx.fill();
+
+      // Draw QR image
+      ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+      // Student Name Label Below QR
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 34px sans-serif';
+      ctx.fillText(loggedUser.name, canvasWidth / 2, 540);
+
+      // Student Details (User ID, Role, Team)
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText(`ID: ${loggedUser.userId}  |  ${loggedUser.role || 'Member'}`, canvasWidth / 2, 578);
+
+      ctx.fillStyle = '#a395f3';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(`Team: ${teamInfo.teamName} (${teamInfo.id})`, canvasWidth / 2, 616);
+
+      if (teamInfo.college && teamInfo.college !== 'N/A') {
+        ctx.fillStyle = '#8e82cf';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(teamInfo.college, canvasWidth / 2, 650);
+      }
+
+      // Download composite image
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `QR_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
+      a.click();
+    } catch (err) {
+      console.error('Error generating custom QR badge image:', err);
+      // Fallback
+      const a = document.createElement('a');
+      a.href = qrCodeUrl;
+      a.download = `QR_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
+      a.click();
+    }
   };
 
   return (
@@ -156,9 +265,6 @@ const StudentProfile = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Student Portal</h2>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={handlePrintCard} className="btn-secondary">
-                <Printer size={16} /> Print Wristband Badge
-              </button>
               <button onClick={handleLogout} className="btn-secondary" style={{ background: 'rgba(239, 74, 64, 0.2)' }}>
                 <LogOut size={16} /> Logout
               </button>
@@ -187,8 +293,58 @@ const StudentProfile = () => {
                 <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#fff', marginBottom: 4 }}>
                   {loggedUser.name}
                 </h1>
-                <div style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', marginBottom: 24 }}>
+                <div style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace', marginBottom: 16 }}>
                   User ID: <strong style={{ color: '#4ade80' }}>{loggedUser.userId}</strong>
+                </div>
+
+                {/* LIVE ATTENDANCE, LUNCH & SNACKS STATUS PILLS */}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+                  {(() => {
+                    const sScans = (attendanceInfo.studentScans || {})[loggedUser.userId] || {};
+                    const isAtt = Boolean(sScans.attendance);
+                    const isLun = Boolean(sScans.lunch);
+                    const isSna = Boolean(sScans.snacks);
+
+                    return (
+                      <>
+                        <span style={{
+                          padding: '6px 14px',
+                          borderRadius: 100,
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          background: isAtt ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 74, 64, 0.2)',
+                          border: isAtt ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 74, 64, 0.5)',
+                          color: isAtt ? '#4ade80' : '#ff8a82'
+                        }}>
+                          {isAtt ? '✓ Attendance: Present' : '✗ Attendance: Absent'}
+                        </span>
+
+                        <span style={{
+                          padding: '6px 14px',
+                          borderRadius: 100,
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          background: isLun ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                          border: isLun ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                          color: isLun ? '#4ade80' : 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                          {isLun ? '🍱 Lunch: Redeemed' : '🍱 Lunch: Available'}
+                        </span>
+
+                        <span style={{
+                          padding: '6px 14px',
+                          borderRadius: 100,
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          background: isSna ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                          border: isSna ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                          color: isSna ? '#facc15' : 'rgba(255, 255, 255, 0.5)'
+                        }}>
+                          {isSna ? '☕ Snacks: Redeemed' : '☕ Snacks: Available'}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div style={{
@@ -212,6 +368,22 @@ const StudentProfile = () => {
                     <span style={{ color: 'var(--text-subtle)', fontSize: '0.9rem' }}>Team Leader:</span>
                     <strong>{teamInfo.leaderName}</strong>
                   </div>
+                  {eventDetails && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: 10 }}>
+                        <span style={{ color: 'var(--text-subtle)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <MapPin size={15} color="#a395f3" /> Event Venue:
+                        </span>
+                        <strong style={{ color: '#a395f3' }}>{eventDetails.venue || 'Main Auditorium'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-subtle)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Clock size={15} color="#4ade80" /> Event Timing:
+                        </span>
+                        <strong style={{ color: '#4ade80' }}>{eventDetails.time || 'Schedule Announced'}</strong>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{ marginTop: 20 }}>
@@ -249,11 +421,20 @@ const StudentProfile = () => {
                 </div>
 
                 {qrCodeUrl && (
-                  <img
-                    src={qrCodeUrl}
-                    alt="Participant QR"
-                    style={{ width: 190, height: 190, borderRadius: 16, border: '5px solid #ffffff', background: '#fff' }}
-                  />
+                  <>
+                    <img
+                      src={qrCodeUrl}
+                      alt="Participant QR"
+                      style={{ width: 190, height: 190, borderRadius: 16, border: '5px solid #ffffff', background: '#fff' }}
+                    />
+                    <button
+                      onClick={handleDownloadQR}
+                      className="btn-secondary"
+                      style={{ marginTop: 12, width: '100%', padding: '8px 12px', fontSize: '0.82rem', gap: 6, justifyContent: 'center' }}
+                    >
+                      <QrIcon size={14} /> Download QR Badge Image
+                    </button>
+                  </>
                 )}
 
                 <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: 'rgba(255,255,255,0.6)', marginTop: 12 }}>

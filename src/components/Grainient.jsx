@@ -3,7 +3,15 @@ import { Renderer, Program, Mesh, Triangle } from 'ogl';
 import './Grainient.css';
 
 const hexToRgb = hex => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!hex) return [1, 1, 1];
+  let cleanHex = String(hex).replace('#', '').trim();
+  if (cleanHex.length === 8) {
+    cleanHex = cleanHex.substring(0, 6);
+  }
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(c => c + c).join('');
+  }
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanHex);
   if (!result) return [1, 1, 1];
   return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
 };
@@ -129,9 +137,10 @@ const Grainient = ({
   centerX = 0.0,
   centerY = 0.0,
   zoom = 0.9,
-  color1 = '#6654b5',
-  color2 = '#150d2e',
-  color3 = '#6654b5',
+  /* --- DEFAULT GRADIENT COLORS --- */
+  color1 = '#6654b5', // First gradient color (HEX code e.g. #6654b5 or #ff0055)
+  color2 = '#150d2e', // Second background color (HEX code e.g. #150d2e or #000000)
+  color3 = '#ef4a40', // Third accent color (HEX code e.g. #ef4a40 or #00e5ff)
   lightMode = false,
   className = ''
 }) => {

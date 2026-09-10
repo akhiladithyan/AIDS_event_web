@@ -1,5 +1,14 @@
--- NEURA 2026 Supabase Database Schema
--- Run this in your Supabase SQL Editor to set up tables with Row Level Security (RLS)
+-- NEURA 2026 Supabase Database Schema & Migration Queries
+-- Run this in your Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
+
+-- 0. Quick Migration Query for Existing Databases (Run this if you get missing column errors):
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_teams NUMERIC DEFAULT 20;
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS college TEXT;
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS department TEXT;
+
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS lunch BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS snacks BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS student_scans JSONB DEFAULT '{}'::jsonb;
 
 -- 1. Events Table
 CREATE TABLE IF NOT EXISTS public.events (
@@ -7,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.events (
     title TEXT NOT NULL,
     category TEXT NOT NULL,
     team_size TEXT,
+    max_teams NUMERIC DEFAULT 20,
     venue TEXT,
     time TEXT,
     prize TEXT,
@@ -22,6 +32,8 @@ CREATE TABLE IF NOT EXISTS public.teams (
     team_name TEXT NOT NULL,
     event_id TEXT REFERENCES public.events(id) ON DELETE SET NULL,
     event_title TEXT,
+    college TEXT,
+    department TEXT,
     leader_id TEXT,
     leader_name TEXT,
     leader_phone TEXT,
@@ -36,6 +48,9 @@ CREATE TABLE IF NOT EXISTS public.teams (
 CREATE TABLE IF NOT EXISTS public.attendance (
     team_id TEXT PRIMARY KEY REFERENCES public.teams(id) ON DELETE CASCADE,
     present BOOLEAN DEFAULT FALSE,
+    lunch BOOLEAN DEFAULT FALSE,
+    snacks BOOLEAN DEFAULT FALSE,
+    student_scans JSONB DEFAULT '{}'::jsonb,
     marked_at TIMESTAMPTZ DEFAULT NOW(),
     marked_by TEXT
 );

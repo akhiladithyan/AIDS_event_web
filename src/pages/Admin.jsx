@@ -20,6 +20,7 @@ const Admin = () => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Technical');
   const [teamSize, setTeamSize] = useState('2-4 Members');
+  const [maxTeams, setMaxTeams] = useState(20);
   const [venue, setVenue] = useState('');
   const [time, setTime] = useState('');
   const [prize, setPrize] = useState('');
@@ -52,41 +53,52 @@ const Admin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const curPass = await storeService.getPasswords();
-    if (password === curPass.admin) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('neura_admin_auth', 'true');
-      setPassError('');
-      await loadAdminData();
-    } else {
-      setPassError('Incorrect Admin Password!');
+    try {
+      const isValid = await storeService.verifyAdminPassword(password);
+      if (isValid) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('neura_admin_auth', 'true');
+        setPassError('');
+        await loadAdminData();
+      } else {
+        setPassError('Incorrect Admin Password! (Verification failed via Supabase service)');
+      }
+    } catch (err) {
+      setPassError(err.message || 'Authentication error');
     }
   };
 
   const handleSaveEvent = async (e) => {
     e.preventDefault();
-    const rules = rulesStr.split('\n').filter(r => r.trim().length > 0);
-    const eventObj = {
-      id: editingEventId || undefined,
-      title,
-      category,
-      teamSize,
-      venue,
-      time,
-      prize,
-      description,
-      rules,
-      image: image || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop'
-    };
+    try {
+      const rules = rulesStr.split('\n').filter(r => r.trim().length > 0);
+      const eventObj = {
+        id: editingEventId || undefined,
+        title,
+        category,
+        teamSize,
+        maxTeams: Number(maxTeams || 20),
+        venue,
+        time,
+        prize,
+        description,
+        rules,
+        image: image || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop'
+      };
 
-    if (editingEventId) {
-      await storeService.updateEvent(eventObj);
-    } else {
-      await storeService.addEvent(eventObj);
+      if (editingEventId) {
+        await storeService.updateEvent(eventObj);
+      } else {
+        await storeService.addEvent(eventObj);
+      }
+
+      setShowEventModal(false);
+      await loadAdminData();
+      alert(`Event "${title}" saved successfully!`);
+    } catch (err) {
+      console.error("Save event error:", err);
+      alert(err.message || "Failed to save event changes.");
     }
-
-    setShowEventModal(false);
-    await loadAdminData();
   };
 
   const handleEditClick = (evt) => {
@@ -94,6 +106,7 @@ const Admin = () => {
     setTitle(evt.title);
     setCategory(evt.category);
     setTeamSize(evt.teamSize);
+    setMaxTeams(evt.maxTeams || 20);
     setVenue(evt.venue);
     setTime(evt.time);
     setPrize(evt.prize);
@@ -131,17 +144,18 @@ const Admin = () => {
   };
 
   const handleDownloadCSV = () => {
-    let csv = 'Team ID,Team Name,Event Title,Leader Name,Leader Phone,Member Name,User ID,Role\n';
+    let csv = 'Event Title,Team No,Team ID,Team Name,College,Department,Participant Name,Role,User ID,Password,Phone,Email,QR Token,Registration Date\n';
     teams.forEach(t => {
-      t.members.forEach(m => {
-        csv += `"${t.id}","${t.teamName}","${t.eventTitle}","${t.leaderName}","${t.leaderPhone}","${m.name}","${m.userId}","${m.role}"\n`;
+      const regDate = t.createdAt ? new Date(t.createdAt).toLocaleString() : 'N/A';
+      (t.members || []).forEach(m => {
+        csv += `"${t.eventTitle}","${t.teamNo || 1}","${t.id}","${t.teamName}","${t.college || 'N/A'}","${t.department || 'N/A'}","${m.name}","${m.role}","${m.userId}","${m.password}","${t.leaderPhone || ''}","${t.leaderEmail || ''}","${m.qrToken || ''}","${regDate}"\n`;
       });
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `neura_registered_students_${Date.now()}.csv`;
+    a.download = `neura_registered_students_complete_${Date.now()}.csv`;
     a.click();
   };
 
@@ -283,38 +297,44 @@ const Admin = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-                {events.map(evt => (
-                  <div key={evt.id} className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="badge-purple">{evt.category}</span>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          onClick={() => handleEditClick(evt)}
-                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: 6, cursor: 'pointer' }}
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(evt.id)}
-                          style={{ background: 'rgba(239, 74, 64, 0.25)', border: 'none', color: '#ff8a82', borderRadius: 8, padding: 6, cursor: 'pointer' }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                {events.map(evt => {
+                  const registeredCount = teams.filter(t => t.eventId === evt.id).length;
+                  const limit = evt.maxTeams || 20;
+
+                  return (
+                    <div key={evt.id} className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span className="badge-purple">{evt.category}</span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => handleEditClick(evt)}
+                            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: 6, cursor: 'pointer' }}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(evt.id)}
+                            style={{ background: 'rgba(239, 74, 64, 0.25)', border: 'none', color: '#ff8a82', borderRadius: 8, padding: 6, cursor: 'pointer' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <h4 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{evt.title}</h4>
+                      <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        {evt.description}
+                      </p>
+
+                      <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div>Max Team Capacity: <strong style={{ color: '#4ade80' }}>{limit} Teams</strong> ({registeredCount} Registered)</div>
+                        <div>Venue: <strong>{evt.venue}</strong></div>
+                        <div>Time: <strong>{evt.time}</strong></div>
+                        <div>Prize: <strong style={{ color: '#ef4a40' }}>{evt.prize}</strong></div>
                       </div>
                     </div>
-
-                    <h4 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{evt.title}</h4>
-                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      {evt.description}
-                    </p>
-
-                    <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div>Prize: <strong style={{ color: '#ef4a40' }}>{evt.prize}</strong></div>
-                      <div>Venue: <strong>{evt.venue}</strong></div>
-                      <div>Time: <strong>{evt.time}</strong></div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -463,7 +483,7 @@ const Admin = () => {
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Event Title *</label>
                     <input type="text" className="glass-input" value={title} onChange={e => setTitle(e.target.value)} required />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Category</label>
                       <input type="text" className="glass-input" value={category} onChange={e => setCategory(e.target.value)} required />
@@ -471,6 +491,10 @@ const Admin = () => {
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Size</label>
                       <input type="text" className="glass-input" value={teamSize} onChange={e => setTeamSize(e.target.value)} required />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Available Spots (Max Teams)</label>
+                      <input type="number" min="1" max="100" className="glass-input" value={maxTeams} onChange={e => setMaxTeams(e.target.value)} required />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>

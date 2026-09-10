@@ -33,9 +33,9 @@
 .scroll-expand__frame {
   position: absolute;
   inset: 0;
-  clip-path: inset(21% 29% 21% 29% round 24px);
+  background: transparent;
   will-change: clip-path;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 0 50px rgba(102, 84, 181, 0.4);
 }
 

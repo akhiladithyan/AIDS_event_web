@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import ScrollExpand from '../components/ScrollExpand';
 import Grainient from '../components/Grainient';
+import MagicBento, { ParticleCard } from '../components/MagicBento';
 import confetti from 'canvas-confetti';
 import { Sparkles, Calendar, Clock, MapPin, Trophy, Users, ArrowRight, X, CheckCircle, Copy, Download, ShieldAlert, Cpu } from 'lucide-react';
 
 const Home = () => {
   const [events, setEvents] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [selectedEvent, setSelectedEvent] = useState(null);
   
   // Registration Modal State
   const [registerModalEvent, setRegisterModalEvent] = useState(null);
   const [teamName, setTeamName] = useState('');
+  const [college, setCollege] = useState('');
+  const [department, setDepartment] = useState('');
   const [leaderName, setLeaderName] = useState('');
   const [leaderPhone, setLeaderPhone] = useState('');
   const [leaderEmail, setLeaderEmail] = useState('');
@@ -24,11 +28,15 @@ const Home = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      const evts = await storeService.getEvents();
+    const fetchData = async () => {
+      const [evts, tms] = await Promise.all([
+        storeService.getEvents(),
+        storeService.getTeams()
+      ]);
       setEvents(evts);
+      setTeams(tms);
     };
-    fetchEvents();
+    fetchData();
   }, []);
 
   const handleProgressChange = (progress) => {
@@ -48,8 +56,8 @@ const Home = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!teamName || !leaderName || !leaderPhone) {
-      alert('Please fill out Team Name, Leader Name, and Leader Phone.');
+    if (!teamName || !college || !department || !leaderName || !leaderPhone) {
+      alert('Please fill out Team Name, College, Department, Leader Name, and Leader Phone.');
       return;
     }
 
@@ -57,6 +65,8 @@ const Home = () => {
       const newTeam = await storeService.registerTeam({
         teamName,
         eventId: registerModalEvent.id,
+        college,
+        department,
         leaderName,
         leaderPhone,
         leaderEmail,
@@ -88,39 +98,19 @@ const Home = () => {
   };
 
   return (
-    <div style={{ paddingBottom: 80, position: 'relative', zIndex: 1, background: '#0a0614' }}>
-      {/* ═══ FULL-PAGE GRADIENT BACKGROUND ═══
-           Fades in smoothly when scroll expand is fully expanded (expandProgress >= 0.95),
-           and fades back out to black when scrolling back up. */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: -1,
-        pointerEvents: 'none',
-        opacity: expandProgress >= 0.95 ? 1 : 0,
-        transition: 'opacity 0.4s ease-out'
-      }}>
-        <Grainient
-          timeSpeed={0.15}
-          grainAmount={0.08}
-        />
-      </div>
-
-      {/* ScrollExpand Hero Section - Solid dark background outside frame */}
-      <div style={{ position: 'relative', width: '100%', marginBottom: 40, background: '#0a0614' }}>
+    <div style={{ paddingBottom: 80, position: 'relative', zIndex: 1, background: 'transparent' }}>
+      {/* ScrollExpand Hero Section */}
+      <div style={{ position: 'relative', width: '100%', marginBottom: 40, background: 'transparent' }}>
         <ScrollExpand
-          src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600&auto=format&fit=crop"
           title="NEURA 2026"
           scrollHint="Scroll down to expand frame & reveal events"
           startWidth={65}
           startHeight={60}
           startRadius={28}
           endRadius={0}
-          mediaZoom={1.3}
           scrollDistance={1.4}
           holdDistance={0.4}
           useWindowScroll={true}
-          customMedia={<Grainient timeSpeed={0.15} grainAmount={0.08} />}
           onProgressChange={handleProgressChange}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -206,79 +196,114 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Event Cards Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: 28
-        }}>
-          {filteredEvents.map(evt => (
-            <div key={evt.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ height: 190, position: 'relative', overflow: 'hidden' }}>
-                <img
-                  src={evt.image}
-                  alt={evt.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(to top, rgba(12, 8, 24, 0.95), transparent 60%)'
-                }} />
-                <span className="badge-coral" style={{ position: 'absolute', top: 16, left: 16 }}>
-                  {evt.category}
-                </span>
-                <span className="badge-purple" style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Trophy size={13} /> {evt.prize}
-                </span>
-              </div>
+        {/* Event Cards Grid with Green Magic Bento & Particle Effects */}
+        <MagicBento glowColor="34, 197, 94">
+          {filteredEvents.map(evt => {
+            const registeredTeamCount = teams.filter(t => t.eventId === evt.id).length;
+            const maxSlots = evt.maxTeams || 20;
 
-              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', flexGrow: 1, gap: 14 }}>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>{evt.title}</h3>
-                <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.5, flexGrow: 1 }}>
-                  {evt.description}
-                </p>
+            return (
+              <ParticleCard
+                key={evt.id}
+                glowColor="34, 197, 94"
+                particleCount={10}
+                enableTilt={true}
+                clickEffect={true}
+                enableMagnetism={false}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', height: '100%' }}>
+                  <div style={{ height: 190, position: 'relative', overflow: 'hidden' }}>
+                    <img
+                      src={evt.image}
+                      alt={evt.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(12, 8, 24, 0.95), transparent 60%)'
+                    }} />
+                    <span className="badge-coral" style={{ position: 'absolute', top: 16, left: 16 }}>
+                      {evt.category}
+                    </span>
+                    <span className="badge-purple" style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Trophy size={13} /> {evt.prize}
+                    </span>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 12,
+                      left: 16,
+                      background: registeredTeamCount >= maxSlots ? 'rgba(239, 74, 64, 0.85)' : 'rgba(34, 197, 94, 0.85)',
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: 100,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      backdropFilter: 'blur(8px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      <Users size={12} /> {registeredTeamCount}/{maxSlots} Slots Filled ({maxSlots - registeredTeamCount} Left)
+                    </div>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: '8px 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Users size={14} color="#ef4a40" /> {evt.teamSize}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <MapPin size={14} color="#6654b5" /> {evt.venue}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, gridColumn: 'span 2' }}>
-                    <Clock size={14} color="#4ade80" /> {evt.time}
+                  <div style={{ padding: 24, display: 'flex', flexDirection: 'column', flexGrow: 1, gap: 14 }}>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>{evt.title}</h3>
+                    <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.5, flexGrow: 1 }}>
+                      {evt.description}
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: '8px 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Users size={14} color="#22c55e" /> {evt.teamSize}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <MapPin size={14} color="#a395f3" /> {evt.venue}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, gridColumn: 'span 2' }}>
+                        <Clock size={14} color="#4ade80" /> {evt.time}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
+                      <button
+                        onClick={() => setSelectedEvent(evt)}
+                        className="btn-secondary"
+                        style={{ fontSize: '0.88rem', padding: '10px' }}
+                      >
+                        Event Details
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRegisterModalEvent(evt);
+                          setRegistrationResult(null);
+                          setTeamName('');
+                          setCollege('');
+                          setDepartment('');
+                          setLeaderName('');
+                          setLeaderPhone('');
+                          setLeaderEmail('');
+                          setMemberNames(['', '', '']);
+                        }}
+                        disabled={registeredTeamCount >= maxSlots}
+                        className="btn-primary"
+                        style={{
+                          fontSize: '0.88rem',
+                          padding: '10px',
+                          opacity: registeredTeamCount >= maxSlots ? 0.6 : 1,
+                          cursor: registeredTeamCount >= maxSlots ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {registeredTeamCount >= maxSlots ? 'Full' : 'Register Team'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
-                  <button
-                    onClick={() => setSelectedEvent(evt)}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.88rem', padding: '10px' }}
-                  >
-                    Event Details
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRegisterModalEvent(evt);
-                      setRegistrationResult(null);
-                      setTeamName('');
-                      setLeaderName('');
-                      setLeaderPhone('');
-                      setLeaderEmail('');
-                      setMemberNames(['', '', '']);
-                    }}
-                    className="btn-primary"
-                    style={{ fontSize: '0.88rem', padding: '10px' }}
-                  >
-                    Register Team
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </ParticleCard>
+            );
+          })}
+        </MagicBento>
       </div>
 
       {/* EVENT DETAILS MODAL */}
@@ -413,6 +438,35 @@ const Home = () => {
                       onChange={e => setTeamName(e.target.value)}
                       required
                     />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                        College / Institution Name *
+                      </label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="e.g. Vel Tech High Tech"
+                        value={college}
+                        onChange={e => setCollege(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                        Department *
+                      </label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="e.g. AI & DS / CSE / ECE"
+                        value={department}
+                        onChange={e => setDepartment(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>

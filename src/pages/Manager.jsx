@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storeService } from '../services/store';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck } from 'lucide-react';
+import QRCode from 'qrcode';
+import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode';
+import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet } from 'lucide-react';
 
 const Manager = () => {
   const [password, setPassword] = useState('');
@@ -15,14 +16,27 @@ const Manager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedTeamId, setExpandedTeamId] = useState(null);
 
-  // Member Editing & Manager Password Confirmation Modal State
+  // Full Team Editing & Manager Password Confirmation Modal State
   const [editingTeam, setEditingTeam] = useState(null);
+  const [editTeamName, setEditTeamName] = useState('');
+  const [editCollege, setEditCollege] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
+  const [editLeaderPhone, setEditLeaderPhone] = useState('');
+  const [editLeaderEmail, setEditLeaderEmail] = useState('');
   const [membersDraft, setMembersDraft] = useState([]);
   const [showPassConfirmModal, setShowPassConfirmModal] = useState(false);
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [confirmError, setConfirmError] = useState('');
 
+  // Batch QR Download Range Modal State
+  const [showBatchQrModal, setShowBatchQrModal] = useState(false);
+  const [batchStartId, setBatchStartId] = useState(1);
+  const [batchEndId, setBatchEndId] = useState(200);
+  const [batchEventFilter, setBatchEventFilter] = useState('All');
+  const [batchStatusMessage, setBatchStatusMessage] = useState('');
+
   // Scanner & Scan Feedback State
+  const [scanMode, setScanMode] = useState('attendance'); // 'attendance', 'lunch', 'snacks'
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [manualToken, setManualToken] = useState('');
   const [scanMessage, setScanMessage] = useState(null);
@@ -31,6 +45,8 @@ const Manager = () => {
   // On-Spot Registration Modal
   const [showOnSpotModal, setShowOnSpotModal] = useState(false);
   const [onSpotTeamName, setOnSpotTeamName] = useState('');
+  const [onSpotCollege, setOnSpotCollege] = useState('');
+  const [onSpotDepartment, setOnSpotDepartment] = useState('');
   const [onSpotEventId, setOnSpotEventId] = useState('');
   const [onSpotLeaderName, setOnSpotLeaderName] = useState('');
   const [onSpotLeaderPhone, setOnSpotLeaderPhone] = useState('');
@@ -54,50 +70,93 @@ const Manager = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const curPass = await storeService.getPasswords();
-    if (password === curPass.manager) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('neura_manager_auth', 'true');
-      setPassError('');
-      await loadManagerData();
-    } else {
-      setPassError('Incorrect Manager Password!');
+    try {
+      const isValid = await storeService.verifyManagerPassword(password);
+      if (isValid) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('neura_manager_auth', 'true');
+        setPassError('');
+        await loadManagerData();
+      } else {
+        setPassError('Incorrect Manager Password! (Verification failed via Supabase service)');
+      }
+    } catch (err) {
+      setPassError(err.message || 'Authentication error');
     }
   };
 
+  const html5QrCodeRef = useRef(null);
+  const fileInputRef = useRef(null);
+
   // Camera QR Scanner Setup
-  useEffect(() => {
-    if (isAuthenticated && isCameraActive) {
-      const scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
+  const startCameraScan = async () => {
+    setIsCameraActive(true);
+    setTimeout(async () => {
+      try {
+        if (html5QrCodeRef.current) {
+          try { await html5QrCodeRef.current.stop(); } catch (e) {}
+        }
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCodeRef.current = html5QrCode;
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            handleProcessQR(decodedText);
+            stopCameraScan();
+          },
+          (errorMessage) => {}
+        );
+      } catch (err) {
+        console.error("Camera start error:", err);
+        setScanMessage({ success: false, text: "Unable to access camera. Check device permissions or upload a QR image file." });
+        setIsCameraActive(false);
+      }
+    }, 150);
+  };
 
-      scanner.render(
-        (decodedText) => {
-          handleProcessQR(decodedText);
-          scanner.clear();
-          setIsCameraActive(false);
-        },
-        (error) => {}
-      );
-
-      return () => {
-        scanner.clear().catch(e => {});
-      };
+  const stopCameraScan = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+      } catch (e) {}
+      html5QrCodeRef.current = null;
     }
-  }, [isCameraActive, isAuthenticated]);
+    setIsCameraActive(false);
+  };
+
+  const handleFileUploadScan = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setScanMessage({ success: true, text: "Scanning QR image file..." });
+      const html5QrCode = new Html5Qrcode("qr-file-reader-hidden");
+      const qrToken = await html5QrCode.scanFile(file, true);
+      await handleProcessQR(qrToken);
+    } catch (err) {
+      console.error("File QR scan error:", err);
+      setScanMessage({ success: false, text: "Could not read QR code from image file. Please upload a clear QR screenshot." });
+      setTimeout(() => setScanMessage(null), 4000);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleProcessQR = async (qrToken) => {
-    const result = await storeService.markAttendance(qrToken, 'Manager Camera Scan');
-    if (result.success) {
-      setScanMessage({ success: true, text: result.message });
-      await loadManagerData();
-    } else {
-      setScanMessage({ success: false, text: result.message });
+    try {
+      const result = await storeService.markAttendance(qrToken, scanMode, `Manager ${scanMode.toUpperCase()} Scan`);
+      if (result.success) {
+        setScanMessage({ success: true, text: result.message });
+        await loadManagerData();
+      } else {
+        setScanMessage({ success: false, text: result.message });
+      }
+    } catch (err) {
+      console.error("Scan processing error:", err);
+      setScanMessage({ success: false, text: `Scan Error: ${err.message || 'Failed to update attendance records.'}` });
     }
-    setTimeout(() => setScanMessage(null), 4000);
+    setTimeout(() => setScanMessage(null), 6000);
   };
 
   const handleManualScanSubmit = async (e) => {
@@ -107,9 +166,13 @@ const Manager = () => {
     setManualToken('');
   };
 
-  const handleToggleAttendance = async (teamId) => {
-    await storeService.toggleAttendance(teamId);
-    await loadManagerData();
+  const handleToggleAttendanceStage = async (teamId, memberUserId, type) => {
+    try {
+      await storeService.toggleAttendanceStage(teamId, memberUserId, type);
+      await loadManagerData();
+    } catch (err) {
+      alert(err.message || 'Operation failed');
+    }
   };
 
   const handleOnSpotRegister = async (e) => {
@@ -122,6 +185,8 @@ const Manager = () => {
     const newTeam = await storeService.registerTeam({
       teamName: onSpotTeamName,
       eventId: onSpotEventId,
+      college: onSpotCollege,
+      department: onSpotDepartment,
       leaderName: onSpotLeaderName,
       leaderPhone: onSpotLeaderPhone || 'Walk-in',
       memberNames: []
@@ -132,6 +197,8 @@ const Manager = () => {
 
     setShowOnSpotModal(false);
     setOnSpotTeamName('');
+    setOnSpotCollege('');
+    setOnSpotDepartment('');
     setOnSpotLeaderName('');
     setOnSpotLeaderPhone('');
     alert(`On-spot team ${newTeam.teamName} registered & marked present! Team ID: ${newTeam.id}`);
@@ -139,13 +206,14 @@ const Manager = () => {
   };
 
   const handleDownloadEventWiseCSV = () => {
-    let csv = 'Event Title,Team ID,Team Name,Participant Name,Role,User ID,Password,Phone,Email,Attendance Status\n';
+    let csv = 'Event Title,Team No,Team ID,Team Name,College,Department,Participant Name,Role,User ID,Password,Phone,Email,Attendance Status,QR Token,Registration Date\n';
     events.forEach(evt => {
       const eventTeams = teams.filter(t => t.eventId === evt.id);
       eventTeams.forEach(t => {
         const isPresent = attendance[t.id]?.present ? 'PRESENT' : 'ABSENT';
+        const regDate = t.createdAt ? new Date(t.createdAt).toLocaleString() : 'N/A';
         (t.members || []).forEach(m => {
-          csv += `"${evt.title}","${t.id}","${t.teamName}","${m.name}","${m.role}","${m.userId}","${m.password}","${t.leaderPhone}","${t.leaderEmail}","${isPresent}"\n`;
+          csv += `"${evt.title}","${t.teamNo || 1}","${t.id}","${t.teamName}","${t.college || 'N/A'}","${t.department || 'N/A'}","${m.name}","${m.role}","${m.userId}","${m.password}","${t.leaderPhone || ''}","${t.leaderEmail || ''}","${isPresent}","${m.qrToken || ''}","${regDate}"\n`;
         });
       });
     });
@@ -154,12 +222,91 @@ const Manager = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `neura_event_wise_roster_${Date.now()}.csv`;
+    a.download = `neura_event_wise_complete_roster_${Date.now()}.csv`;
     a.click();
+  };
+
+  const handleDownloadMemberQR = async (member, team) => {
+    try {
+      const qrToken = member.qrToken || `QR-${member.userId}-${team.id}`;
+      let dataUrl = member.qrCodeUrl;
+      if (!dataUrl) {
+        dataUrl = await QRCode.toDataURL(qrToken, { width: 500, margin: 2 });
+      }
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `QR_${member.userId}_${member.name.replace(/\s+/g, '_')}_${team.teamName.replace(/\s+/g, '_')}.png`;
+      a.click();
+    } catch (err) {
+      alert('Failed to download QR code: ' + err.message);
+    }
+  };
+
+  const handleExecuteBatchQrDownload = async (e) => {
+    e.preventDefault();
+    const start = Number(batchStartId);
+    const end = Number(batchEndId);
+
+    if (isNaN(start) || isNaN(end) || start > end) {
+      alert('Please enter a valid User ID number range (e.g. 1 to 200).');
+      return;
+    }
+
+    // Collect matching students across teams
+    const matches = [];
+    teams.forEach(team => {
+      if (batchEventFilter !== 'All' && team.eventId !== batchEventFilter) return;
+      (team.members || []).forEach(member => {
+        const digitsMatch = (member.userId || '').match(/\d+/);
+        if (digitsMatch) {
+          const numId = parseInt(digitsMatch[0], 10);
+          if (numId >= start && numId <= end) {
+            matches.push({ member, team });
+          }
+        }
+      });
+    });
+
+    if (matches.length === 0) {
+      setBatchStatusMessage(`No student accounts found in range ${start} - ${end}.`);
+      return;
+    }
+
+    setBatchStatusMessage(`Preparing to download ${matches.length} student QR codes...`);
+
+    for (let i = 0; i < matches.length; i++) {
+      const { member, team } = matches[i];
+      setBatchStatusMessage(`Downloading ${i + 1} of ${matches.length}: ${member.name} (${member.userId})...`);
+      
+      const qrToken = member.qrToken || `QR-${member.userId}-${team.id}`;
+      let dataUrl = member.qrCodeUrl;
+      if (!dataUrl) {
+        try {
+          dataUrl = await QRCode.toDataURL(qrToken, { width: 500, margin: 2 });
+        } catch (err) {}
+      }
+
+      if (dataUrl) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `QR_${member.userId}_${member.name.replace(/\s+/g, '_')}_${team.teamName.replace(/\s+/g, '_')}.png`;
+        a.click();
+      }
+
+      // Small delay between downloads so the browser handles batch downloads gracefully
+      await new Promise(res => setTimeout(res, 250));
+    }
+
+    setBatchStatusMessage(`✅ Successfully downloaded ${matches.length} QR code images for User ID range ${start} to ${end}!`);
   };
 
   const handleOpenEditMembersModal = (team) => {
     setEditingTeam(team);
+    setEditTeamName(team.teamName || '');
+    setEditCollege(team.college || '');
+    setEditDepartment(team.department || '');
+    setEditLeaderPhone(team.leaderPhone || '');
+    setEditLeaderEmail(team.leaderEmail || '');
     setMembersDraft(JSON.parse(JSON.stringify(team.members || [])));
     setConfirmPasswordInput('');
     setConfirmError('');
@@ -201,12 +348,19 @@ const Manager = () => {
     e.preventDefault();
     if (!editingTeam) return;
     try {
-      await storeService.updateTeamMembers(editingTeam.id, membersDraft, confirmPasswordInput);
+      await storeService.updateTeamMembers(editingTeam.id, {
+        teamName: editTeamName,
+        college: editCollege,
+        department: editDepartment,
+        leaderPhone: editLeaderPhone,
+        leaderEmail: editLeaderEmail,
+        members: membersDraft
+      }, confirmPasswordInput);
       setShowPassConfirmModal(false);
       setEditingTeam(null);
       setConfirmPasswordInput('');
       setConfirmError('');
-      alert('Team member details updated and saved to Supabase successfully!');
+      alert(`Team details & members for "${editTeamName}" updated and saved to Supabase!`);
       await loadManagerData();
     } catch (err) {
       setConfirmError(err.message || 'Verification failed');
@@ -285,7 +439,17 @@ const Manager = () => {
               <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Event Manager Console</h2>
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  setBatchStatusMessage('');
+                  setShowBatchQrModal(true);
+                }}
+                className="btn-secondary"
+              >
+                <QrCode size={18} /> Download Batch QRs (Range)
+              </button>
+
               <button
                 onClick={handleDownloadEventWiseCSV}
                 className="btn-secondary"
@@ -307,25 +471,101 @@ const Manager = () => {
 
           {/* SCANNER & ATTENDANCE ACTION BAR */}
           <div className="glass-panel" style={{ padding: 28, marginBottom: 32 }}>
+            {/* Scan Mode Switcher Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="badge-coral" style={{ fontSize: '0.85rem' }}>Current Scan Mode</span>
+                <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#fff' }}>
+                  {scanMode === 'attendance' ? '1. Event Attendance Scanning' : scanMode === 'lunch' ? '2. Lunch Token Scanning' : '3. Snacks Token Scanning'}
+                </h4>
+              </div>
+
+              {/* 3 Scan Mode Selector Tabs */}
+              <div style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,0.06)', padding: 4, borderRadius: 100, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <button
+                  onClick={() => setScanMode('attendance')}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 100,
+                    border: 'none',
+                    background: scanMode === 'attendance' ? '#ef4a40' : 'transparent',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  📋 Attendance
+                </button>
+                <button
+                  onClick={() => setScanMode('lunch')}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 100,
+                    border: 'none',
+                    background: scanMode === 'lunch' ? '#22c55e' : 'transparent',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  🍱 Lunch
+                </button>
+                <button
+                  onClick={() => setScanMode('snacks')}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 100,
+                    border: 'none',
+                    background: scanMode === 'snacks' ? '#eab308' : 'transparent',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  ☕ Snacks
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'center' }}>
               
-              {/* Camera Scanner Box */}
+              {/* Camera & File QR Scanner Box */}
               <div style={{ background: 'rgba(12, 8, 24, 0.6)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: 20, textAlign: 'center' }}>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <Camera size={18} color="#ef4a40" /> Camera QR Scanner
+                  <Camera size={18} color="#ef4a40" /> Camera & Image QR Scanner
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-                  Scan participant phone screen or wristband QR code to instantly verify attendance.
+                  Scan live via camera or upload a QR screenshot for <strong style={{ color: '#fff' }}>{scanMode.toUpperCase()}</strong> verification.
                 </p>
 
+                <div id="qr-file-reader-hidden" style={{ display: 'none' }}></div>
+
                 {!isCameraActive ? (
-                  <button onClick={() => setIsCameraActive(true)} className="btn-secondary" style={{ width: '100%', padding: '12px' }}>
-                    Open Phone/Device Camera
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={startCameraScan} className="btn-secondary" style={{ width: '100%', padding: '12px', gap: 8, justifyContent: 'center' }}>
+                      <Camera size={16} /> Open Device Camera ({scanMode.toUpperCase()})
+                    </button>
+                    <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="btn-secondary" style={{ width: '100%', padding: '10px', fontSize: '0.88rem', gap: 8, justifyContent: 'center' }}>
+                      <Upload size={16} /> Upload QR Image File
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleFileUploadScan}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
                 ) : (
                   <div>
                     <div id="qr-reader" style={{ width: '100%', borderRadius: 12, overflow: 'hidden' }}></div>
-                    <button onClick={() => setIsCameraActive(false)} className="btn-secondary" style={{ marginTop: 10, width: '100%' }}>
+                    <button onClick={stopCameraScan} className="btn-secondary" style={{ marginTop: 10, width: '100%', padding: '10px' }}>
                       Close Camera
                     </button>
                   </div>
@@ -338,19 +578,19 @@ const Manager = () => {
                   <QrCode size={18} color="#4ade80" /> Manual Token Verification
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-                  Enter Team ID (e.g. <code>TM-E1-01</code>) or QR token string directly.
+                  Enter Team ID (e.g. <code>TM-E1-01</code>) or Student ID (e.g. <code>STD-101</code>) for <strong style={{ color: '#fff' }}>{scanMode.toUpperCase()}</strong>.
                 </p>
 
                 <form onSubmit={handleManualScanSubmit} style={{ display: 'flex', gap: 10 }}>
                   <input
                     type="text"
                     className="glass-input"
-                    placeholder="Enter TM-E1-01 or QR-STD-XXX"
+                    placeholder="Enter TM-E1-01 or STD-101"
                     value={manualToken}
                     onChange={e => setManualToken(e.target.value)}
                   />
                   <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                    Verify & Mark
+                    Verify {scanMode.toUpperCase()}
                   </button>
                 </form>
               </div>
@@ -419,13 +659,18 @@ const Manager = () => {
                   <th style={{ padding: '12px 16px' }}>Team Name</th>
                   <th style={{ padding: '12px 16px' }}>Event</th>
                   <th style={{ padding: '12px 16px' }}>Leader Contact</th>
-                  <th style={{ padding: '12px 16px' }}>Attendance Status</th>
-                  <th style={{ padding: '12px 16px' }}>Members & Actions</th>
+                  <th style={{ padding: '12px 16px' }}>Status (Attendance / Lunch / Snacks)</th>
+                  <th style={{ padding: '12px 16px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTeams.map(t => {
-                  const isPresent = attendance[t.id]?.present || false;
+                  const teamAtt = attendance[t.id] || {};
+                  const isPresent = teamAtt.present || false;
+                  const isLunch = teamAtt.lunch || false;
+                  const isSnacks = teamAtt.snacks || false;
+                  const studentScans = teamAtt.studentScans || {};
+
                   const isExpanded = expandedTeamId === t.id;
                   return (
                     <React.Fragment key={t.id}>
@@ -437,7 +682,10 @@ const Manager = () => {
                           background: isExpanded ? 'rgba(102, 84, 181, 0.15)' : 'transparent'
                         }}
                       >
-                        <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>{t.id}</td>
+                        <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>
+                          <span style={{ display: 'block', fontSize: '0.78rem', color: '#a395f3' }}>Team #{t.teamNo || 1}</span>
+                          {t.id}
+                        </td>
                         <td style={{ padding: '14px 16px', fontWeight: 700 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {isExpanded ? <ChevronUp size={16} color="#a395f3" /> : <ChevronDown size={16} color="rgba(255,255,255,0.4)" />}
@@ -449,25 +697,53 @@ const Manager = () => {
                           {t.leaderName} ({t.leaderPhone})
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleToggleAttendance(t.id)}
-                            style={{
-                              padding: '6px 16px',
-                              borderRadius: 100,
-                              border: isPresent ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 74, 64, 0.5)',
-                              background: isPresent ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 74, 64, 0.2)',
-                              color: isPresent ? '#4ade80' : '#ff8a82',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              fontSize: '0.82rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6
-                            }}
-                          >
-                            {isPresent ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                            {isPresent ? 'PRESENT' : 'ABSENT'}
-                          </button>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => handleToggleAttendanceStage(t.id, null, 'attendance')}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 100,
+                                border: isPresent ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 74, 64, 0.5)',
+                                background: isPresent ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 74, 64, 0.2)',
+                                color: isPresent ? '#4ade80' : '#ff8a82',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {isPresent ? '✓ ATTEND' : '✗ ABSENT'}
+                            </button>
+                            <button
+                              onClick={() => handleToggleAttendanceStage(t.id, null, 'lunch')}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 100,
+                                border: isLunch ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                background: isLunch ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                color: isLunch ? '#4ade80' : 'rgba(255, 255, 255, 0.5)',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {isLunch ? '🍱 LUNCH' : '🍱 NO LUNCH'}
+                            </button>
+                            <button
+                              onClick={() => handleToggleAttendanceStage(t.id, null, 'snacks')}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 100,
+                                border: isSnacks ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                background: isSnacks ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                color: isSnacks ? '#facc15' : 'rgba(255, 255, 255, 0.5)',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {isSnacks ? '☕ SNACKS' : '☕ NO SNACKS'}
+                            </button>
+                          </div>
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                           <button
@@ -480,14 +756,19 @@ const Manager = () => {
                         </td>
                       </tr>
 
-                      {/* SLIDE DOWN DETAILS FOR MANAGER */}
+                      {/* SLIDE DOWN INDIVIDUAL MEMBER DETAILS & SCAN BREAKDOWN FOR MANAGER */}
                       {isExpanded && (
                         <tr>
                           <td colSpan={6} style={{ padding: '16px 20px', background: 'rgba(12, 8, 24, 0.7)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Users size={18} color="#a395f3" />
-                                <strong style={{ fontSize: '1rem', color: '#fff' }}>Team Member Roster ({t.teamName})</strong>
+                            <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <Users size={18} color="#a395f3" />
+                                  <strong style={{ fontSize: '1rem', color: '#fff' }}>Team #{t.teamNo || 1} - {t.teamName} Individual Student Scan Audit</strong>
+                                </div>
+                                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                  College: <strong style={{ color: '#fff' }}>{t.college || 'N/A'}</strong> &nbsp;|&nbsp; Dept: <strong style={{ color: '#fff' }}>{t.department || 'N/A'}</strong>
+                                </div>
                               </div>
                               <button
                                 onClick={() => handleOpenEditMembersModal(t)}
@@ -498,22 +779,87 @@ const Manager = () => {
                               </button>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-                              {t.members.map((m, idx) => (
-                                <div key={m.userId || idx} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                    <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{m.name}</strong>
-                                    <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.72rem' }}>
-                                      {m.role}
-                                    </span>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+                              {t.members.map((m, idx) => {
+                                const mScans = studentScans[m.userId] || {};
+                                const mAtt = Boolean(mScans.attendance);
+                                const mLunch = Boolean(mScans.lunch);
+                                const mSnacks = Boolean(mScans.snacks);
+
+                                return (
+                                  <div key={m.userId || idx} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                      <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{m.name}</strong>
+                                      <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.72rem' }}>
+                                        {m.role}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                                      <div>User ID: <code style={{ color: '#4ade80' }}>{m.userId}</code></div>
+                                      <div>Password: <code style={{ color: '#fbbf24' }}>{m.password}</code></div>
+                                    </div>
+
+                                    {/* 3 Stage Status Buttons for Individual Student */}
+                                    <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                                      <button
+                                        onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'attendance')}
+                                        style={{
+                                          padding: '3px 8px',
+                                          borderRadius: 6,
+                                          border: mAtt ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(239,74,64,0.5)',
+                                          background: mAtt ? 'rgba(34,197,94,0.2)' : 'rgba(239,74,64,0.2)',
+                                          color: mAtt ? '#4ade80' : '#ff8a82',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 700,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        {mAtt ? '✓ Present' : '✗ Absent'}
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'lunch')}
+                                        style={{
+                                          padding: '3px 8px',
+                                          borderRadius: 6,
+                                          border: mLunch ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                          background: mLunch ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                                          color: mLunch ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 700,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        {mLunch ? '🍱 Lunch Had' : '🍱 No Lunch'}
+                                      </button>
+
+                                      <button
+                                        onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'snacks')}
+                                        style={{
+                                          padding: '3px 8px',
+                                          borderRadius: 6,
+                                          border: mSnacks ? '1px solid rgba(234,179,8,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                          background: mSnacks ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)',
+                                          color: mSnacks ? '#facc15' : 'rgba(255,255,255,0.4)',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 700,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        {mSnacks ? '☕ Snacks Had' : '☕ No Snacks'}
+                                      </button>
+                                    </div>
+
+                                    <button
+                                      onClick={() => handleDownloadMemberQR(m, t)}
+                                      className="btn-secondary"
+                                      style={{ width: '100%', padding: '6px 10px', fontSize: '0.78rem', gap: 6, justifyContent: 'center' }}
+                                    >
+                                      <Download size={13} /> Download Student QR
+                                    </button>
                                   </div>
-                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    <div>User ID: <code style={{ color: '#4ade80' }}>{m.userId}</code></div>
-                                    <div>Password: <code style={{ color: '#fbbf24' }}>{m.password}</code></div>
-                                    <div>QR Token: <span style={{ fontSize: '0.72rem', wordBreak: 'break-all', opacity: 0.8 }}>{m.qrToken}</span></div>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </td>
                         </tr>
@@ -544,6 +890,14 @@ const Manager = () => {
                     <input type="text" className="glass-input" value={onSpotTeamName} onChange={e => setOnSpotTeamName(e.target.value)} required />
                   </div>
                   <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>College / Institution Name</label>
+                    <input type="text" className="glass-input" placeholder="e.g. Vel Tech High Tech" value={onSpotCollege} onChange={e => setOnSpotCollege(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department</label>
+                    <input type="text" className="glass-input" placeholder="e.g. AI & DS" value={onSpotDepartment} onChange={e => setOnSpotDepartment(e.target.value)} />
+                  </div>
+                  <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Leader / Representative Name *</label>
                     <input type="text" className="glass-input" value={onSpotLeaderName} onChange={e => setOnSpotLeaderName(e.target.value)} required />
                   </div>
@@ -561,55 +915,113 @@ const Manager = () => {
             </div>
           )}
 
-          {/* MANAGER PASSWORD CONFIRMATION MODAL FOR MEMBER EDITING */}
+          {/* MANAGER PASSWORD CONFIRMATION MODAL FOR FULL TEAM EDITING */}
           {showPassConfirmModal && editingTeam && (
             <div className="modal-overlay" onClick={() => setShowPassConfirmModal(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                   <ShieldCheck size={26} color="#a395f3" />
                   <div>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Edit Team Roster</h3>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Edit Team Details & Roster</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Editing member details for <strong>{editingTeam.teamName}</strong> ({editingTeam.id})
+                      Modifying team details for <strong>{editingTeam.id}</strong> ({editingTeam.eventTitle})
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 260, overflowY: 'auto', marginBottom: 18, paddingRight: 6 }}>
-                  {membersDraft.map((m, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 10 }}>
+                <form onSubmit={handleSaveMembersWithPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Team Name *</label>
+                    <input
+                      type="text"
+                      className="glass-input"
+                      value={editTeamName}
+                      onChange={e => setEditTeamName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>College / Institution</label>
                       <input
                         type="text"
                         className="glass-input"
-                        value={m.name}
-                        onChange={e => handleUpdateMemberDraftName(idx, e.target.value)}
-                        placeholder="Member Name"
-                        style={{ flex: 1 }}
-                        required
+                        value={editCollege}
+                        onChange={e => setEditCollege(e.target.value)}
                       />
-                      <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                        {m.role}
-                      </span>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Department</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        value={editDepartment}
+                        onChange={e => setEditDepartment(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Leader Phone Number</label>
+                      <input
+                        type="tel"
+                        className="glass-input"
+                        value={editLeaderPhone}
+                        onChange={e => setEditLeaderPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Leader Email</label>
+                      <input
+                        type="email"
+                        className="glass-input"
+                        value={editLeaderEmail}
+                        onChange={e => setEditLeaderEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 14, marginTop: 4 }}>
+                    <label style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block', marginBottom: 8 }}>
+                      Team Members List
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 220, overflowY: 'auto', marginBottom: 12, paddingRight: 4 }}>
+                      {membersDraft.map((m, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 10 }}>
+                          <input
+                            type="text"
+                            className="glass-input"
+                            value={m.name}
+                            onChange={e => handleUpdateMemberDraftName(idx, e.target.value)}
+                            placeholder="Member Name"
+                            style={{ flex: 1 }}
+                            required
+                          />
+                          <span className={m.role === 'Leader' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                            {m.role}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMemberFromDraft(idx)}
+                            style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: 8, borderRadius: 8, cursor: 'pointer' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
                       <button
                         type="button"
-                        onClick={() => handleRemoveMemberFromDraft(idx)}
-                        style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: 8, borderRadius: 8, cursor: 'pointer' }}
+                        onClick={handleAddMemberToDraft}
+                        className="btn-secondary"
+                        style={{ fontSize: '0.85rem', padding: '8px 14px', gap: 6 }}
                       >
-                        <Trash2 size={16} />
+                        <Plus size={16} /> Add Member to Team
                       </button>
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={handleAddMemberToDraft}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.85rem', padding: '8px 14px', gap: 6 }}
-                  >
-                    <Plus size={16} /> Add Member to Team
-                  </button>
-                </div>
+                  </div>
 
-                <form onSubmit={handleSaveMembersWithPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ background: 'rgba(102, 84, 181, 0.15)', border: '1px solid rgba(131, 114, 216, 0.4)', borderRadius: 12, padding: 14 }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: 6, color: '#fff' }}>
                       Enter Manager Security Password to Confirm *
@@ -636,6 +1048,89 @@ const Manager = () => {
                     </button>
                     <button type="submit" className="btn-primary">
                       Confirm & Save to Supabase
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* BATCH QR DOWNLOAD BY RANGE MODAL */}
+          {showBatchQrModal && (
+            <div className="modal-overlay" onClick={() => setShowBatchQrModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <QrCode size={28} color="#a395f3" />
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Batch Download Student QRs</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Download student QR codes in bulk based on User ID range (e.g. 1 - 200).
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleExecuteBatchQrDownload} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>Start User ID No.</label>
+                      <input
+                        type="number"
+                        className="glass-input"
+                        value={batchStartId}
+                        onChange={e => setBatchStartId(e.target.value)}
+                        placeholder="1"
+                        min="1"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>End User ID No.</label>
+                      <input
+                        type="number"
+                        className="glass-input"
+                        value={batchEndId}
+                        onChange={e => setBatchEndId(e.target.value)}
+                        placeholder="200"
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>Filter by Event</label>
+                    <select
+                      className="glass-input"
+                      value={batchEventFilter}
+                      onChange={e => setBatchEventFilter(e.target.value)}
+                    >
+                      <option value="All" style={{ background: '#150d2e' }}>All Events</option>
+                      {events.map(evt => (
+                        <option key={evt.id} value={evt.id} style={{ background: '#150d2e' }}>{evt.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {batchStatusMessage && (
+                    <div style={{
+                      background: 'rgba(102, 84, 181, 0.15)',
+                      border: '1px solid rgba(131, 114, 216, 0.4)',
+                      color: '#a395f3',
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      fontSize: '0.85rem',
+                      fontWeight: 600
+                    }}>
+                      {batchStatusMessage}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+                    <button type="button" onClick={() => setShowBatchQrModal(false)} className="btn-secondary">
+                      Close
+                    </button>
+                    <button type="submit" className="btn-primary">
+                      <Download size={16} /> Start Batch Download
                     </button>
                   </div>
                 </form>

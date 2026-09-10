@@ -7,6 +7,7 @@ const INITIAL_EVENTS = [
     title: 'Neural Hackathon 2026',
     category: 'Technical',
     teamSize: '2-4 Members',
+    maxTeams: 20,
     venue: 'AI Lab 3 (2nd Floor)',
     time: '10:00 AM - 04:00 PM',
     prize: '₹15,000 + Trophy',
@@ -23,9 +24,10 @@ const INITIAL_EVENTS = [
     title: 'Data Science Symposium',
     category: 'Paper Presentation',
     teamSize: '1-2 Members',
+    maxTeams: 20,
     venue: 'Auditorium Hall B',
     time: '11:00 AM - 01:30 PM',
-    prize: '₹10,000',
+    prize: 'Certificate of Merit & Memento',
     description: 'Present research papers or case studies on Machine Learning, Computer Vision, NLP, or Big Data Analytics.',
     rules: [
       'Presentation duration: 8 mins + 2 mins Q&A.',
@@ -39,9 +41,10 @@ const INITIAL_EVENTS = [
     title: 'Prompt Matrix Challenge',
     category: 'AI Skills',
     teamSize: 'Individual / Pair',
+    maxTeams: 20,
     venue: 'DS Lab 1',
     time: '02:00 PM - 03:30 PM',
-    prize: '₹7,500',
+    prize: '₹7,500 + Certificate',
     description: 'Test your prompt engineering skills! Generate precise AI images, code, and complex outputs under tight latency constraints.',
     rules: [
       'Only specified LLM interfaces permitted.',
@@ -54,9 +57,10 @@ const INITIAL_EVENTS = [
     title: 'Algorithmic Duel (Speed Coding)',
     category: 'Coding',
     teamSize: 'Individual',
+    maxTeams: 20,
     venue: 'Computer Center A',
     time: '10:30 AM - 12:30 PM',
-    prize: '₹8,000',
+    prize: 'Certificate & Trophy',
     description: 'Head-to-head competitive coding battle testing algorithmic logic, data structures, and optimized execution time.',
     rules: [
       'Languages allowed: Python, C++, Java.',
@@ -78,20 +82,23 @@ const INITIAL_PASSWORDS = {
 
 const INITIAL_TEAMS = [
   {
-    id: 'TM-9081',
+    id: 'TM-VT1-01',
     teamName: 'Cyber Neurons',
+    teamNo: 1,
     eventId: 'evt-1',
     eventTitle: 'Neural Hackathon 2026',
+    college: 'Vel Tech High Tech Multi Tech',
+    department: 'Artificial Intelligence & Data Science',
     leaderId: 'STD-101',
     leaderName: 'Akhil Adithyan',
     leaderPhone: '+91 9876543210',
     leaderEmail: 'akhil@example.com',
     members: [
-      { userId: 'STD-101', name: 'Akhil Adithyan', password: 'pass-101', role: 'Leader', qrToken: 'QR-STD-101-TM-9081' },
-      { userId: 'STD-102', name: 'Priya Sharma', password: 'pass-102', role: 'Member', qrToken: 'QR-STD-102-TM-9081' },
-      { userId: 'STD-103', name: 'Rohan Verma', password: 'pass-103', role: 'Member', qrToken: 'QR-STD-103-TM-9081' }
+      { userId: 'STD-101', name: 'Akhil Adithyan', password: 'pass-101', role: 'Leader', qrToken: 'QR-STD-101-TM-VT1-01' },
+      { userId: 'STD-102', name: 'Priya Sharma', password: 'pass-102', role: 'Member', qrToken: 'QR-STD-102-TM-VT1-01' },
+      { userId: 'STD-103', name: 'Rohan Verma', password: 'pass-103', role: 'Member', qrToken: 'QR-STD-103-TM-VT1-01' }
     ],
-    qrCodeToken: 'QR-TM-9081',
+    qrCodeToken: 'QR-TM-VT1-01',
     createdAt: new Date().toISOString()
   }
 ];
@@ -102,6 +109,7 @@ const mapEventFromDb = (row) => ({
   title: row.title,
   category: row.category,
   teamSize: row.team_size,
+  maxTeams: Number(row.max_teams || row.maxTeams || 20),
   venue: row.venue,
   time: row.time,
   prize: row.prize,
@@ -116,6 +124,7 @@ const mapEventToDb = (evt) => ({
   title: evt.title,
   category: evt.category,
   team_size: evt.teamSize,
+  max_teams: Number(evt.maxTeams || 20),
   venue: evt.venue,
   time: evt.time,
   prize: evt.prize,
@@ -129,6 +138,8 @@ const mapTeamFromDb = (row) => ({
   teamName: row.team_name,
   eventId: row.event_id,
   eventTitle: row.event_title,
+  college: row.college || 'N/A',
+  department: row.department || 'N/A',
   leaderId: row.leader_id,
   leaderName: row.leader_name,
   leaderPhone: row.leader_phone,
@@ -144,6 +155,8 @@ const mapTeamToDb = (team) => ({
   team_name: team.teamName,
   event_id: team.eventId,
   event_title: team.eventTitle,
+  college: team.college || '',
+  department: team.department || '',
   leader_id: team.leaderId,
   leader_name: team.leaderName,
   leader_phone: team.leaderPhone,
@@ -192,7 +205,13 @@ export const storeService = {
   async addEvent(event) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const newEvent = { ...event, id: event.id || 'evt-' + Date.now() };
-    const { error } = await supabase.from('events').insert([mapEventToDb(newEvent)]);
+    const dbPayload = mapEventToDb(newEvent);
+    let { error } = await supabase.from('events').insert([dbPayload]);
+    if (error && (error.message.includes('max_teams') || error.code === 'PGRST204')) {
+      delete dbPayload.max_teams;
+      const res = await supabase.from('events').insert([dbPayload]);
+      error = res.error;
+    }
     if (error) {
       console.error('Supabase add event error:', error);
       throw error;
@@ -202,10 +221,16 @@ export const storeService = {
 
   async updateEvent(updatedEvent) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
-    const { error } = await supabase.from('events').update(mapEventToDb(updatedEvent)).eq('id', updatedEvent.id);
+    const dbPayload = mapEventToDb(updatedEvent);
+    let { error } = await supabase.from('events').update(dbPayload).eq('id', updatedEvent.id);
+    if (error && (error.message.includes('max_teams') || error.code === 'PGRST204')) {
+      delete dbPayload.max_teams;
+      const res = await supabase.from('events').update(dbPayload).eq('id', updatedEvent.id);
+      error = res.error;
+    }
     if (error) {
       console.error('Supabase update event error:', error);
-      throw error;
+      throw new Error(`Failed to update event: ${error.message || 'Database error'}`);
     }
   },
 
@@ -218,7 +243,31 @@ export const storeService = {
     }
   },
 
-  // 2. PASSWORDS
+  // 2. PASSWORDS & SECURITY VERIFICATION
+  async verifyAdminPassword(inputPassword) {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase cloud service is not configured');
+    }
+    const { data, error } = await supabase.from('passwords').select('admin').eq('id', 'system').single();
+    if (error) {
+      console.error('Supabase admin verification error:', error);
+      throw new Error('Security verification failed. Please check network/Supabase connection.');
+    }
+    return data && data.admin === inputPassword;
+  },
+
+  async verifyManagerPassword(inputPassword) {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase cloud service is not configured');
+    }
+    const { data, error } = await supabase.from('passwords').select('manager').eq('id', 'system').single();
+    if (error) {
+      console.error('Supabase manager verification error:', error);
+      throw new Error('Security verification failed. Please check network/Supabase connection.');
+    }
+    return data && data.manager === inputPassword;
+  },
+
   async getPasswords() {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const { data, error } = await supabase.from('passwords').select('*').eq('id', 'system').maybeSingle();
@@ -251,17 +300,42 @@ export const storeService = {
       console.error('Supabase fetch teams error:', error);
       throw error;
     }
+    let teams = [];
     if (!data || data.length === 0) {
       await this.getEvents();
       const insertRows = INITIAL_TEAMS.map(mapTeamToDb);
       const { error: seedErr } = await supabase.from('teams').insert(insertRows);
       if (seedErr) console.error('Error seeding teams:', seedErr);
-      return INITIAL_TEAMS;
+      teams = INITIAL_TEAMS;
+    } else {
+      teams = data.map(mapTeamFromDb);
     }
-    return data.map(mapTeamFromDb);
+
+    // Ensure all teams & individual student members have valid QR code data URLs populated
+    for (const team of teams) {
+      if (!team.qrCodeUrl && team.qrCodeToken) {
+        try {
+          team.qrCodeUrl = await QRCode.toDataURL(team.qrCodeToken, { width: 300, margin: 2 });
+        } catch (e) {}
+      }
+      if (team.members) {
+        for (const m of team.members) {
+          if (!m.qrToken) {
+            m.qrToken = `QR-${m.userId}-${team.id}`;
+          }
+          if (!m.qrCodeUrl && m.qrToken) {
+            try {
+              m.qrCodeUrl = await QRCode.toDataURL(m.qrToken, { width: 300, margin: 2 });
+            } catch (e) {}
+          }
+        }
+      }
+    }
+
+    return teams;
   },
 
-  async registerTeam({ teamName, eventId, leaderName, leaderPhone, leaderEmail, memberNames = [] }) {
+  async registerTeam({ teamName, eventId, college, department, leaderName, leaderPhone, leaderEmail, memberNames = [] }) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
     const events = await this.getEvents();
@@ -271,9 +345,10 @@ export const storeService = {
     // 1. Filter existing teams for this event
     const existingEventTeams = allTeams.filter(t => t.eventId === eventId);
     
-    // 2. Enforce Max 20 Teams Limit per Event
-    if (existingEventTeams.length >= 20) {
-      throw new Error(`Registration Full! Maximum 20 teams allowed per event for "${targetEvent.title}".`);
+    // 2. Enforce Dynamic Max Teams Limit per Event (configured by Admin)
+    const limit = targetEvent.maxTeams || 20;
+    if (existingEventTeams.length >= limit) {
+      throw new Error(`Registration Full! Maximum ${limit} teams allowed for "${targetEvent.title}".`);
     }
 
     // 3. Duplicate Participant Check for the Same Event
@@ -294,15 +369,21 @@ export const storeService = {
       }
     }
 
-    // 4. Sequential Team ID Format: TM-EVT-01 to TM-EVT-20
-    const nextNum = existingEventTeams.length + 1;
-    const numStr = String(nextNum).padStart(2, '0');
+    // 4. Sequential Team ID Format per Event (Starts from 1 for each event: TM-EVT-01, TM-EVT-02...)
+    const teamNo = existingEventTeams.length + 1;
+    const numStr = String(teamNo).padStart(2, '0');
     const evtCode = eventId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-3) || 'E1';
     const teamId = `TM-${evtCode}-${numStr}`;
     const qrCodeToken = `QR-${teamId}`;
 
     const leaderUserId = 'STD-' + Math.floor(100 + Math.random() * 900);
     const leaderPassword = 'pass-' + Math.floor(100 + Math.random() * 900);
+    const leaderQrToken = `QR-${leaderUserId}-${teamId}`;
+
+    let leaderQrUrl = '';
+    try {
+      leaderQrUrl = await QRCode.toDataURL(leaderQrToken, { width: 300, margin: 2 });
+    } catch (err) {}
 
     const members = [
       {
@@ -310,21 +391,29 @@ export const storeService = {
         name: cleanLeaderName,
         password: leaderPassword,
         role: 'Leader',
-        qrToken: `QR-${leaderUserId}-${teamId}`
+        qrToken: leaderQrToken,
+        qrCodeUrl: leaderQrUrl
       }
     ];
 
-    cleanMemberNames.forEach((name) => {
+    for (const name of cleanMemberNames) {
       const uId = 'STD-' + Math.floor(100 + Math.random() * 900);
       const uPass = 'pass-' + Math.floor(100 + Math.random() * 900);
+      const memQrToken = `QR-${uId}-${teamId}`;
+      let memQrUrl = '';
+      try {
+        memQrUrl = await QRCode.toDataURL(memQrToken, { width: 300, margin: 2 });
+      } catch (err) {}
+
       members.push({
         userId: uId,
         name,
         password: uPass,
         role: 'Member',
-        qrToken: `QR-${uId}-${teamId}`
+        qrToken: memQrToken,
+        qrCodeUrl: memQrUrl
       });
-    });
+    }
 
     // 5. Generate QR Code Data URL for Supabase storage
     let qrCodeUrl = '';
@@ -337,8 +426,11 @@ export const storeService = {
     const newTeam = {
       id: teamId,
       teamName,
+      teamNo,
       eventId,
       eventTitle: targetEvent.title,
+      college: college || 'Vel Tech High Tech Multi Tech',
+      department: department || 'Artificial Intelligence & Data Science',
       leaderId: leaderUserId,
       leaderName: cleanLeaderName,
       leaderPhone: leaderPhone || '',
@@ -352,13 +444,16 @@ export const storeService = {
     const { error } = await supabase.from('teams').insert([mapTeamToDb(newTeam)]);
     if (error) {
       console.error('Supabase register team error:', error);
+      if (error.message && (error.message.includes('college') || error.message.includes('department') || error.message.includes('schema cache'))) {
+        throw new Error(`Database Migration Required!\n\nPlease copy and run this query in your Supabase SQL Editor:\n\nALTER TABLE public.teams ADD COLUMN IF NOT EXISTS college TEXT;\nALTER TABLE public.teams ADD COLUMN IF NOT EXISTS department TEXT;`);
+      }
       throw error;
     }
 
     return newTeam;
   },
 
-  async updateTeamMembers(teamId, updatedMembers, managerPassword) {
+  async updateTeamMembers(teamId, updatedMembersOrData, managerPassword) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
     const curPass = await this.getPasswords();
@@ -369,6 +464,28 @@ export const storeService = {
     const teams = await this.getTeams();
     const target = teams.find(t => t.id === teamId);
     if (!target) throw new Error('Team not found.');
+
+    let updatedMembers = Array.isArray(updatedMembersOrData) ? updatedMembersOrData : (updatedMembersOrData.members || target.members);
+
+    if (!Array.isArray(updatedMembersOrData)) {
+      if (updatedMembersOrData.teamName !== undefined) target.teamName = updatedMembersOrData.teamName;
+      if (updatedMembersOrData.college !== undefined) target.college = updatedMembersOrData.college;
+      if (updatedMembersOrData.department !== undefined) target.department = updatedMembersOrData.department;
+      if (updatedMembersOrData.leaderPhone !== undefined) target.leaderPhone = updatedMembersOrData.leaderPhone;
+      if (updatedMembersOrData.leaderEmail !== undefined) target.leaderEmail = updatedMembersOrData.leaderEmail;
+    }
+
+    // Ensure member QR data URLs exist
+    for (const m of updatedMembers) {
+      if (!m.qrToken) {
+        m.qrToken = `QR-${m.userId}-${teamId}`;
+      }
+      if (!m.qrCodeUrl && m.qrToken) {
+        try {
+          m.qrCodeUrl = await QRCode.toDataURL(m.qrToken, { width: 300, margin: 2 });
+        } catch (e) {}
+      }
+    }
 
     target.members = updatedMembers;
     const leader = updatedMembers.find(m => m.role === 'Leader') || updatedMembers[0];
@@ -406,7 +523,7 @@ export const storeService = {
     }
   },
 
-  // 4. ATTENDANCE
+  // 4. ATTENDANCE & MEAL STAGES (Attendance, Lunch, Snacks)
   async getAttendance() {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
@@ -419,50 +536,248 @@ export const storeService = {
     const attMap = {};
     if (data) {
       data.forEach(row => {
+        // Support backward compatibility for team_id keys and new member_token / scan_type keys
         attMap[row.team_id] = {
           present: row.present,
           markedAt: row.marked_at,
-          markedBy: row.marked_by
+          markedBy: row.marked_by,
+          lunch: row.lunch || false,
+          snacks: row.snacks || false,
+          studentScans: row.student_scans || {}
         };
       });
     }
     return attMap;
   },
 
-  async markAttendance(teamOrUserToken, markedBy = 'Manager') {
+  async markAttendance(teamOrUserToken, scanType = 'attendance', markedBy = 'Manager') {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
+    const cleanToken = (teamOrUserToken || '').trim();
+    if (!cleanToken) {
+      return { success: false, message: 'Invalid or empty QR Code / Token.' };
+    }
+
     const teams = await this.getTeams();
+    let targetTeam = null;
+    let targetMember = null;
+    const tokenUpper = cleanToken.toUpperCase();
+
+    // 1. Check exact match on Team ID or Team QR Code Token
+    targetTeam = teams.find(t => 
+      (t.id && t.id.toUpperCase() === tokenUpper) || 
+      (t.qrCodeToken && t.qrCodeToken.toUpperCase() === tokenUpper)
+    );
     
-    let targetTeam = teams.find(t => t.id === teamOrUserToken || t.qrCodeToken === teamOrUserToken);
-    
+    // 2. Check Member QR token or User ID exact match
     if (!targetTeam) {
       for (const t of teams) {
-        if (t.members.some(m => m.qrToken === teamOrUserToken || m.userId === teamOrUserToken)) {
+        const mem = (t.members || []).find(m => 
+          (m.qrToken && m.qrToken.toUpperCase() === tokenUpper) ||
+          (m.userId && m.userId.toUpperCase() === tokenUpper)
+        );
+        if (mem) {
           targetTeam = t;
+          targetMember = mem;
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback match for extracted tokens (e.g. STD-101 inside QR-STD-101-TM-VT1-01)
+    if (!targetTeam) {
+      const stdMatch = cleanToken.match(/STD-\d+/i);
+      const extractedUserId = stdMatch ? stdMatch[0].toUpperCase() : null;
+
+      const tmMatch = cleanToken.match(/TM-[\w-]+/i);
+      const extractedTeamId = tmMatch ? tmMatch[0].toUpperCase() : null;
+
+      for (const t of teams) {
+        if (extractedTeamId && t.id.toUpperCase() === extractedTeamId) {
+          targetTeam = t;
+        }
+        const mem = (t.members || []).find(m => {
+          if (extractedUserId && m.userId && m.userId.toUpperCase() === extractedUserId) return true;
+          if (m.qrToken && tokenUpper.includes(m.qrToken.toUpperCase())) return true;
+          if (m.userId && tokenUpper.includes(m.userId.toUpperCase())) return true;
+          return false;
+        });
+        if (mem) {
+          targetTeam = t;
+          targetMember = mem;
           break;
         }
       }
     }
 
     if (!targetTeam) {
-      return { success: false, message: 'Invalid QR Code or Team Code.' };
+      return { success: false, message: `Invalid QR Code or User Token "${cleanToken}".` };
     }
 
+    const attendance = await this.getAttendance();
+    const existing = attendance[targetTeam.id] || { present: false, lunch: false, snacks: false, studentScans: {} };
+    const studentScans = existing.studentScans || {};
+
     const markedAt = new Date().toISOString();
+    const scanTypeKey = scanType.toLowerCase(); // 'attendance', 'lunch', or 'snacks'
+
+    // If scanning individual student QR
+    if (targetMember) {
+      const sId = targetMember.userId;
+      if (!studentScans[sId]) studentScans[sId] = { attendance: false, lunch: false, snacks: false };
+
+      // Gatekeeping: Individual student MUST be marked present for attendance before receiving lunch/snacks
+      if ((scanTypeKey === 'lunch' || scanTypeKey === 'snacks') && !studentScans[sId].attendance) {
+        return {
+          success: false,
+          message: `Denied: ${targetMember.name} (${targetMember.userId}) is marked ABSENT! Only present participants are eligible for ${scanTypeKey.toUpperCase()}.`
+        };
+      }
+
+      if (studentScans[sId][scanTypeKey]) {
+        return {
+          success: false,
+          message: `Duplicate Scan Warning: ${targetMember.name} (${targetMember.userId}) already scanned for ${scanTypeKey.toUpperCase()}!`
+        };
+      }
+
+      studentScans[sId][scanTypeKey] = true;
+      studentScans[sId][`${scanTypeKey}Time`] = markedAt;
+    } else {
+      // Team-level scanning gate check
+      if ((scanTypeKey === 'lunch' || scanTypeKey === 'snacks') && !existing.present) {
+        return {
+          success: false,
+          message: `Denied: Team ${targetTeam.teamName} has NOT been marked PRESENT for Event Attendance yet!`
+        };
+      }
+    }
+
+    // Check if at least one member or full team marked for this scanType
+    let isPresent = existing.present;
+    let isLunch = existing.lunch;
+    let isSnacks = existing.snacks;
+
+    if (scanTypeKey === 'attendance') isPresent = true;
+    if (scanTypeKey === 'lunch') isLunch = true;
+    if (scanTypeKey === 'snacks') isSnacks = true;
+
+    // Save to Supabase attendance table
     const { error } = await supabase.from('attendance').upsert([{
       team_id: targetTeam.id,
-      present: true,
+      present: isPresent,
+      lunch: isLunch,
+      snacks: isSnacks,
+      student_scans: studentScans,
       marked_at: markedAt,
       marked_by: markedBy
     }]);
 
     if (error) {
       console.error('Supabase mark attendance error:', error);
-      throw error;
+      // Fallback: If missing columns in DB schema, attempt basic upsert and log schema warning
+      if (error.message && (error.message.includes('column') || error.code === 'PGRST204')) {
+        const { error: fallbackErr } = await supabase.from('attendance').upsert([{
+          team_id: targetTeam.id,
+          present: isPresent,
+          marked_at: markedAt,
+          marked_by: markedBy
+        }]);
+        if (fallbackErr) throw fallbackErr;
+        console.warn('Attendance column missing in Supabase schema. Please run migration SQL in supabase_schema.sql.');
+      } else {
+        throw error;
+      }
     }
 
-    return { success: true, team: targetTeam, message: `Attendance marked for Team ${targetTeam.teamName}!` };
+    const scannedName = targetMember ? `${targetMember.name} (${targetTeam.teamName})` : `Team ${targetTeam.teamName}`;
+    return {
+      success: true,
+      team: targetTeam,
+      member: targetMember,
+      message: `✅ ${scanTypeKey.toUpperCase()} verified and marked for ${scannedName}!`
+    };
+  },
+
+  async toggleAttendanceStage(teamId, memberUserId, scanType) {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const attendance = await this.getAttendance();
+    const existing = attendance[teamId] || { present: false, lunch: false, snacks: false, studentScans: {} };
+    const studentScans = existing.studentScans || {};
+    const scanTypeKey = scanType.toLowerCase();
+
+    if (memberUserId) {
+      if (!studentScans[memberUserId]) studentScans[memberUserId] = { attendance: false, lunch: false, snacks: false };
+      
+      if (scanTypeKey === 'attendance') {
+        const nextAttState = !studentScans[memberUserId].attendance;
+        studentScans[memberUserId].attendance = nextAttState;
+        // If participant is marked ABSENT, revoke lunch and snacks
+        if (!nextAttState) {
+          studentScans[memberUserId].lunch = false;
+          studentScans[memberUserId].snacks = false;
+        }
+      } else if (scanTypeKey === 'lunch' || scanTypeKey === 'snacks') {
+        const isMemPresent = Boolean(studentScans[memberUserId].attendance);
+        if (!isMemPresent && !studentScans[memberUserId][scanTypeKey]) {
+          throw new Error('Cannot issue lunch/snacks! The participant is marked ABSENT. Please mark Attendance first.');
+        }
+        studentScans[memberUserId][scanTypeKey] = !Boolean(studentScans[memberUserId][scanTypeKey]);
+      }
+    } else {
+      // Toggle team-level flag
+      if (scanTypeKey === 'attendance') {
+        const nextPresentState = !existing.present;
+        existing.present = nextPresentState;
+        // If team is marked ABSENT, revoke lunch and snacks for team & all members
+        if (!nextPresentState) {
+          existing.lunch = false;
+          existing.snacks = false;
+          Object.keys(studentScans).forEach(sId => {
+            studentScans[sId].attendance = false;
+            studentScans[sId].lunch = false;
+            studentScans[sId].snacks = false;
+          });
+        }
+      } else if (scanTypeKey === 'lunch' || scanTypeKey === 'snacks') {
+        if (!existing.present && !existing[scanTypeKey]) {
+          throw new Error('Cannot issue lunch/snacks! The team is marked ABSENT. Please mark Attendance first.');
+        }
+        existing[scanTypeKey] = !existing[scanTypeKey];
+      }
+    }
+
+    // Keep team-level status synced if any member scan is true
+    const memberValues = Object.values(studentScans);
+    if (scanTypeKey === 'attendance' && memberValues.some(m => m.attendance)) existing.present = true;
+    if (scanTypeKey === 'lunch' && memberValues.some(m => m.lunch)) existing.lunch = true;
+    if (scanTypeKey === 'snacks' && memberValues.some(m => m.snacks)) existing.snacks = true;
+
+    const markedAt = new Date().toISOString();
+    const { error } = await supabase.from('attendance').upsert([{
+      team_id: teamId,
+      present: existing.present,
+      lunch: existing.lunch,
+      snacks: existing.snacks,
+      student_scans: studentScans,
+      marked_at: markedAt,
+      marked_by: 'Manager Toggle'
+    }]);
+
+    if (error) {
+      console.error('Supabase toggle attendance stage error:', error);
+      if (error.message && (error.message.includes('column') || error.code === 'PGRST204')) {
+        await supabase.from('attendance').upsert([{
+          team_id: teamId,
+          present: existing.present,
+          marked_at: markedAt,
+          marked_by: 'Manager Toggle'
+        }]);
+      } else {
+        throw error;
+      }
+    }
   },
 
   async toggleAttendance(teamId) {
