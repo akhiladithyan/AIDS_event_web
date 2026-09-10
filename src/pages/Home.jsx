@@ -56,14 +56,22 @@ const Home = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!teamName || !college || !department || !leaderName || !leaderPhone) {
-      alert('Please fill out Team Name, College, Department, Leader Name, and Leader Phone.');
+    const isSolo = registerModalEvent && (
+      registerModalEvent.teamSize === '1' ||
+      registerModalEvent.teamSize === '1 Member' ||
+      registerModalEvent.teamSize === 'Individual' ||
+      registerModalEvent.teamSize?.toLowerCase().includes('individual') ||
+      registerModalEvent.teamSize?.toLowerCase().includes('solo')
+    );
+
+    if ((!isSolo && !teamName) || !college || !department || !leaderName || !leaderPhone) {
+      alert(isSolo ? 'Please fill out College, Department, Participant Name, and Phone Number.' : 'Please fill out Team Name, College, Department, Leader Name, and Leader Phone.');
       return;
     }
 
     try {
       const newTeam = await storeService.registerTeam({
-        teamName,
+        teamName: isSolo ? `${leaderName}'s Entry` : teamName,
         eventId: registerModalEvent.id,
         college,
         department,
@@ -417,125 +425,150 @@ const Home = () => {
 
             {!registrationResult ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span className="badge-purple">Event Registration</span>
-                  <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{registerModalEvent.title}</span>
-                </div>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 20 }}>
-                  Register Your Team
-                </h2>
+                {(() => {
+                  const tSizeStr = String(registerModalEvent.teamSize || '');
+                  const isSolo = tSizeStr === '1' || tSizeStr === '1 Member' || tSizeStr.toLowerCase().includes('individual') || tSizeStr.toLowerCase().includes('solo');
+                  
+                  // Parse dynamic max members allowed for team
+                  let extraMemberInputsCount = 0;
+                  if (!isSolo) {
+                    const numbers = tSizeStr.match(/\d+/g);
+                    if (numbers && numbers.length > 0) {
+                      const maxMem = parseInt(numbers[numbers.length - 1], 10);
+                      extraMemberInputsCount = Math.max(0, maxMem - 1);
+                    } else {
+                      extraMemberInputsCount = 3;
+                    }
+                  }
 
-                <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                      Team Name *
-                    </label>
-                    <input
-                      type="text"
-                      className="glass-input"
-                      placeholder="e.g. AI Vanguard"
-                      value={teamName}
-                      onChange={e => setTeamName(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                        College / Institution Name *
-                      </label>
-                      <input
-                        type="text"
-                        className="glass-input"
-                        placeholder="e.g. Vel Tech High Tech"
-                        value={college}
-                        onChange={e => setCollege(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                        Department *
-                      </label>
-                      <input
-                        type="text"
-                        className="glass-input"
-                        placeholder="e.g. AI & DS / CSE / ECE"
-                        value={department}
-                        onChange={e => setDepartment(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                        Team Leader Name *
-                      </label>
-                      <input
-                        type="text"
-                        className="glass-input"
-                        placeholder="Leader Full Name"
-                        value={leaderName}
-                        onChange={e => setLeaderName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                        Leader Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        className="glass-input"
-                        placeholder="+91 9876543210"
-                        value={leaderPhone}
-                        onChange={e => setLeaderPhone(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                      Leader Email (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      className="glass-input"
-                      placeholder="leader@college.edu"
-                      value={leaderEmail}
-                      onChange={e => setLeaderEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginTop: 8 }}>
-                    <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: 10 }}>
-                      Team Members (Optional for solo/pairs)
-                    </label>
-                    {memberNames.map((mName, idx) => (
-                      <div key={idx} style={{ marginBottom: 10 }}>
-                        <input
-                          type="text"
-                          className="glass-input"
-                          placeholder={`Member ${idx + 2} Full Name`}
-                          value={mName}
-                          onChange={e => {
-                            const newM = [...memberNames];
-                            newM[idx] = e.target.value;
-                            setMemberNames(newM);
-                          }}
-                        />
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span className="badge-purple">Event Registration</span>
+                        <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{registerModalEvent.title}</span>
                       </div>
-                    ))}
-                  </div>
+                      <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 20 }}>
+                        {isSolo ? 'Individual Participant Registration' : 'Register Your Team'}
+                      </h2>
 
-                  <button type="submit" className="btn-primary" style={{ marginTop: 12, padding: '14px' }}>
-                    Confirm & Generate Team Credentials <Sparkles size={18} />
-                  </button>
-                </form>
+                      <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {!isSolo && (
+                          <div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                              Team Name *
+                            </label>
+                            <input
+                              type="text"
+                              className="glass-input"
+                              placeholder="e.g. AI Vanguard"
+                              value={teamName}
+                              onChange={e => setTeamName(e.target.value)}
+                              required={!isSolo}
+                            />
+                          </div>
+                        )}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                          <div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                              College / Institution Name *
+                            </label>
+                            <input
+                              type="text"
+                              className="glass-input"
+                              placeholder="e.g. Vel Tech High Tech"
+                              value={college}
+                              onChange={e => setCollege(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                              Department *
+                            </label>
+                            <input
+                              type="text"
+                              className="glass-input"
+                              placeholder="e.g. AI & DS / CSE / ECE"
+                              value={department}
+                              onChange={e => setDepartment(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                          <div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                              {isSolo ? 'Participant Name *' : 'Team Leader Name *'}
+                            </label>
+                            <input
+                              type="text"
+                              className="glass-input"
+                              placeholder={isSolo ? 'Your Full Name' : 'Leader Full Name'}
+                              value={leaderName}
+                              onChange={e => setLeaderName(e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                              {isSolo ? 'Phone Number *' : 'Leader Phone Number *'}
+                            </label>
+                            <input
+                              type="tel"
+                              className="glass-input"
+                              placeholder="+91 9876543210"
+                              value={leaderPhone}
+                              onChange={e => setLeaderPhone(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                            {isSolo ? 'Email Address (Optional)' : 'Leader Email (Optional)'}
+                          </label>
+                          <input
+                            type="email"
+                            className="glass-input"
+                            placeholder="student@college.edu"
+                            value={leaderEmail}
+                            onChange={e => setLeaderEmail(e.target.value)}
+                          />
+                        </div>
+
+                        {!isSolo && extraMemberInputsCount > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginTop: 8 }}>
+                            <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: 10 }}>
+                              Additional Team Members ({extraMemberInputsCount} Max)
+                            </label>
+                            {Array.from({ length: extraMemberInputsCount }).map((_, idx) => (
+                              <div key={idx} style={{ marginBottom: 10 }}>
+                                <input
+                                  type="text"
+                                  className="glass-input"
+                                  placeholder={`Member ${idx + 2} Full Name`}
+                                  value={memberNames[idx] || ''}
+                                  onChange={e => {
+                                    const newM = [...memberNames];
+                                    newM[idx] = e.target.value;
+                                    setMemberNames(newM);
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <button type="submit" className="btn-primary" style={{ marginTop: 12, padding: '14px' }}>
+                          Confirm & Generate Entry Credentials <Sparkles size={18} />
+                        </button>
+                      </form>
+                    </>
+                  );
+                })()}
               </>
             ) : (
               /* REGISTRATION SUCCESS RECEIPT WITH USER IDS, PASSWORDS & QR CODE */

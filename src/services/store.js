@@ -423,9 +423,11 @@ export const storeService = {
       console.warn('Failed to generate QR Data URL:', err);
     }
 
+    const finalTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Solo`;
+
     const newTeam = {
       id: teamId,
-      teamName,
+      teamName: finalTeamName,
       teamNo,
       eventId,
       eventTitle: targetEvent.title,
@@ -553,10 +555,18 @@ export const storeService = {
   async markAttendance(teamOrUserToken, scanType = 'attendance', markedBy = 'Manager') {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    const cleanToken = (teamOrUserToken || '').trim();
+    let cleanToken = (teamOrUserToken || '').trim();
     if (!cleanToken) {
       return { success: false, message: 'Invalid or empty QR Code / Token.' };
     }
+
+    // Attempt parsing JSON object payload if QR contains JSON
+    try {
+      if (cleanToken.startsWith('{') && cleanToken.endsWith('}')) {
+        const parsed = JSON.parse(cleanToken);
+        cleanToken = parsed.qrToken || parsed.userId || parsed.teamId || parsed.token || cleanToken;
+      }
+    } catch (e) {}
 
     const teams = await this.getTeams();
     let targetTeam = null;
@@ -584,7 +594,7 @@ export const storeService = {
       }
     }
 
-    // 3. Fallback match for extracted tokens (e.g. STD-101 inside QR-STD-101-TM-VT1-01)
+    // 3. Fallback match for extracted tokens (STD-XXX, TM-XXX, or substring matching)
     if (!targetTeam) {
       const stdMatch = cleanToken.match(/STD-\d+/i);
       const extractedUserId = stdMatch ? stdMatch[0].toUpperCase() : null;
@@ -598,8 +608,8 @@ export const storeService = {
         }
         const mem = (t.members || []).find(m => {
           if (extractedUserId && m.userId && m.userId.toUpperCase() === extractedUserId) return true;
-          if (m.qrToken && tokenUpper.includes(m.qrToken.toUpperCase())) return true;
-          if (m.userId && tokenUpper.includes(m.userId.toUpperCase())) return true;
+          if (m.qrToken && (tokenUpper.includes(m.qrToken.toUpperCase()) || m.qrToken.toUpperCase().includes(tokenUpper))) return true;
+          if (m.userId && (tokenUpper.includes(m.userId.toUpperCase()) || m.userId.toUpperCase().includes(tokenUpper))) return true;
           return false;
         });
         if (mem) {
@@ -611,7 +621,7 @@ export const storeService = {
     }
 
     if (!targetTeam) {
-      return { success: false, message: `Invalid QR Code or User Token "${cleanToken}".` };
+      return { success: false, message: `Invalid or unrecognized QR Code token "${cleanToken}". Check if the student account exists in the database.` };
     }
 
     const attendance = await this.getAttendance();

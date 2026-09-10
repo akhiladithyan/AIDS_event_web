@@ -98,21 +98,71 @@ const Manager = () => {
         }
         const html5QrCode = new Html5Qrcode("qr-reader");
         html5QrCodeRef.current = html5QrCode;
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            handleProcessQR(decodedText);
-            stopCameraScan();
-          },
-          (errorMessage) => {}
-        );
+
+        // Dynamic responsive scan box sizing
+        const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdge * 0.85);
+          return { width: Math.max(200, qrboxSize), height: Math.max(200, qrboxSize) };
+        };
+
+        const config = {
+          fps: 20,
+          qrbox: qrboxFunction,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
+        };
+
+        let isProcessing = false;
+
+        const qrSuccessCallback = async (decodedText) => {
+          if (isProcessing) return;
+          isProcessing = true;
+          console.log("Scanned QR Text:", decodedText);
+
+          // Audio beep feedback on successful scan
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+          } catch (e) {}
+
+          await handleProcessQR(decodedText);
+          await stopCameraScan();
+          isProcessing = false;
+        };
+
+        // Try environment camera first, fallback to user camera if environment fails
+        try {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            qrSuccessCallback,
+            () => {}
+          );
+        } catch (camErr) {
+          console.warn("Back camera fail, attempting default camera:", camErr);
+          await html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            qrSuccessCallback,
+            () => {}
+          );
+        }
       } catch (err) {
         console.error("Camera start error:", err);
         setScanMessage({ success: false, text: "Unable to access camera. Check device permissions or upload a QR image file." });
         setIsCameraActive(false);
       }
-    }, 150);
+    }, 200);
   };
 
   const stopCameraScan = async () => {

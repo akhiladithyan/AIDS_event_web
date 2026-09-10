@@ -19,7 +19,7 @@ const Admin = () => {
   const [editingEventId, setEditingEventId] = useState(null);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Technical');
-  const [teamSize, setTeamSize] = useState('2-4 Members');
+  const [teamSize, setTeamSize] = useState('1 Member (Solo)');
   const [maxTeams, setMaxTeams] = useState(20);
   const [venue, setVenue] = useState('');
   const [time, setTime] = useState('');
@@ -280,7 +280,7 @@ const Admin = () => {
                     setEditingEventId(null);
                     setTitle('');
                     setCategory('Technical');
-                    setTeamSize('2-4 Members');
+                    setTeamSize('1 Member (Solo)');
                     setVenue('');
                     setTime('');
                     setPrize('');
@@ -489,8 +489,20 @@ const Admin = () => {
                       <input type="text" className="glass-input" value={category} onChange={e => setCategory(e.target.value)} required />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Size</label>
-                      <input type="text" className="glass-input" value={teamSize} onChange={e => setTeamSize(e.target.value)} required />
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Size *</label>
+                      <select
+                        className="glass-input"
+                        value={teamSize}
+                        onChange={e => setTeamSize(e.target.value)}
+                        required
+                        style={{ background: '#150d2e', color: '#fff' }}
+                      >
+                        <option value="1 Member (Solo)" style={{ background: '#150d2e' }}>1 Member (Solo)</option>
+                        <option value="2 Members" style={{ background: '#150d2e' }}>2 Members</option>
+                        <option value="3 Members" style={{ background: '#150d2e' }}>3 Members</option>
+                        <option value="4 Members" style={{ background: '#150d2e' }}>4 Members</option>
+                        <option value="5 Members" style={{ background: '#150d2e' }}>5 Members</option>
+                      </select>
                     </div>
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Available Spots (Max Teams)</label>

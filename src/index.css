@@ -291,3 +291,19 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Html5Qrcode Camera Viewfinder Styling */
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 12px;
+}
+
+#qr-reader__scan_region {
+  background: transparent !important;
+}
+
+#qr-reader__dashboard {
+  display: none !important;
+}
