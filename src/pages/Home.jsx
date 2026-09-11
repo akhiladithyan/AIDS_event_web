@@ -234,9 +234,11 @@ const Home = () => {
                     <span className="badge-coral" style={{ position: 'absolute', top: 16, left: 16 }}>
                       {evt.category}
                     </span>
-                    <span className="badge-purple" style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Trophy size={13} /> {evt.prize}
-                    </span>
+                    {(evt.hasCashPrize === false || (evt.prize && evt.prize.toLowerCase().includes('no cash'))) && (
+                      <span className="badge-purple" style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Trophy size={13} /> {evt.prize}
+                      </span>
+                    )}
                     <div style={{
                       position: 'absolute',
                       bottom: 12,

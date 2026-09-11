@@ -23,7 +23,8 @@ const Admin = () => {
   const [maxTeams, setMaxTeams] = useState(20);
   const [venue, setVenue] = useState('');
   const [time, setTime] = useState('');
-  const [prize, setPrize] = useState('');
+  const [hasCashPrize, setHasCashPrize] = useState(true);
+  const [prizeAmount, setPrizeAmount] = useState('');
   const [description, setDescription] = useState('');
   const [rulesStr, setRulesStr] = useState('');
   const [image, setImage] = useState('');
@@ -72,6 +73,10 @@ const Admin = () => {
     e.preventDefault();
     try {
       const rules = rulesStr.split('\n').filter(r => r.trim().length > 0);
+      const computedPrize = hasCashPrize
+        ? (prizeAmount.trim() ? (prizeAmount.trim().startsWith('₹') ? prizeAmount.trim() : `₹${prizeAmount.trim()}`) : 'Cash Prize')
+        : 'No Cash Prize';
+
       const eventObj = {
         id: editingEventId || undefined,
         title,
@@ -80,7 +85,9 @@ const Admin = () => {
         maxTeams: Number(maxTeams || 20),
         venue,
         time,
-        prize,
+        prize: computedPrize,
+        hasCashPrize,
+        prizeAmount: hasCashPrize ? prizeAmount : '',
         description,
         rules,
         image: image || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop'
@@ -104,12 +111,28 @@ const Admin = () => {
   const handleEditClick = (evt) => {
     setEditingEventId(evt.id);
     setTitle(evt.title);
-    setCategory(evt.category);
+    setCategory(evt.category === 'Non-Technical' || evt.category === 'Non Technical' ? 'Non-Technical' : 'Technical');
     setTeamSize(evt.teamSize);
     setMaxTeams(evt.maxTeams || 20);
     setVenue(evt.venue);
     setTime(evt.time);
-    setPrize(evt.prize);
+
+    const isNoPrize = evt.hasCashPrize === false ||
+      (evt.prize && (evt.prize.toLowerCase().includes('no cash') || (evt.prize.toLowerCase().includes('certificate') && !evt.prize.includes('₹'))));
+
+    if (isNoPrize) {
+      setHasCashPrize(false);
+      setPrizeAmount('');
+    } else {
+      setHasCashPrize(true);
+      if (evt.prizeAmount) {
+        setPrizeAmount(evt.prizeAmount);
+      } else {
+        const cleaned = (evt.prize || '').replace(/^₹\s*/, '');
+        setPrizeAmount(cleaned);
+      }
+    }
+
     setDescription(evt.description);
     setRulesStr(evt.rules ? evt.rules.join('\n') : '');
     setImage(evt.image || '');
@@ -283,7 +306,8 @@ const Admin = () => {
                     setTeamSize('1 Member (Solo)');
                     setVenue('');
                     setTime('');
-                    setPrize('');
+                    setHasCashPrize(true);
+                    setPrizeAmount('');
                     setDescription('');
                     setRulesStr('');
                     setImage('');
@@ -485,8 +509,17 @@ const Admin = () => {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                     <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Category</label>
-                      <input type="text" className="glass-input" value={category} onChange={e => setCategory(e.target.value)} required />
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Category *</label>
+                      <select
+                        className="glass-input"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        required
+                        style={{ background: '#150d2e', color: '#fff' }}
+                      >
+                        <option value="Technical" style={{ background: '#150d2e' }}>Technical</option>
+                        <option value="Non-Technical" style={{ background: '#150d2e' }}>Non-Technical</option>
+                      </select>
                     </div>
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Size *</label>
@@ -509,7 +542,7 @@ const Admin = () => {
                       <input type="number" min="1" max="100" className="glass-input" value={maxTeams} onChange={e => setMaxTeams(e.target.value)} required />
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: hasCashPrize ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 12 }}>
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Venue</label>
                       <input type="text" className="glass-input" value={venue} onChange={e => setVenue(e.target.value)} required />
@@ -519,9 +552,34 @@ const Admin = () => {
                       <input type="text" className="glass-input" value={time} onChange={e => setTime(e.target.value)} required />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Prize</label>
-                      <input type="text" className="glass-input" value={prize} onChange={e => setPrize(e.target.value)} required />
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Cash Prize?</label>
+                      <select
+                        className="glass-input"
+                        value={hasCashPrize ? 'yes' : 'no'}
+                        onChange={e => {
+                          const val = e.target.value === 'yes';
+                          setHasCashPrize(val);
+                          if (!val) setPrizeAmount('');
+                        }}
+                        style={{ background: '#150d2e', color: '#fff' }}
+                      >
+                        <option value="yes" style={{ background: '#150d2e' }}>Yes (Has Cash Prize)</option>
+                        <option value="no" style={{ background: '#150d2e' }}>No (Certificates / Trophies Only)</option>
+                      </select>
                     </div>
+                    {hasCashPrize && (
+                      <div>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Prize Amount (₹)</label>
+                        <input
+                          type="text"
+                          className="glass-input"
+                          placeholder="e.g. 15,000"
+                          value={prizeAmount}
+                          onChange={e => setPrizeAmount(e.target.value)}
+                          required={hasCashPrize}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Description</label>

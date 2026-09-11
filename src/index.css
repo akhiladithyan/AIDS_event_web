@@ -3,8 +3,8 @@
 :root {
   --bg-main: #0c0818;
   --bg-gradient: radial-gradient(circle at 15% 15%, rgba(84, 181, 103, 0.35) 0%, transparent 45%),
-                      radial-gradient(circle at 85% 75%, rgba(84, 181, 103, 0.25) 0%, transparent 50%),
-                      linear-gradient(135deg, #090614 0%, #0e1a12 50%, #07150c 100%);
+    radial-gradient(circle at 85% 75%, rgba(84, 181, 103, 0.25) 0%, transparent 50%),
+    linear-gradient(135deg, #090614 0%, #0e1a12 50%, #07150c 100%);
   --accent-green: #54b567;
   --accent-green-glow: rgba(84, 181, 103, 0.4);
   --accent-coral: #ef4a40;
@@ -37,7 +37,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
 }
 
@@ -199,9 +204,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .badge-coral {
-  background: rgba(239, 74, 64, 0.2);
-  color: #ff7870;
-  border: 1px solid rgba(239, 74, 64, 0.4);
+  background: rgba(0, 255, 0, 0.736);
+  color: #ffffff;
+  border: 1px solid rgba(84, 181, 103, 0.55);
   padding: 4px 12px;
   border-radius: 100px;
   font-size: 0.78rem;
@@ -211,9 +216,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .badge-purple {
-  background: rgba(102, 84, 181, 0.25);
-  color: #a395f3;
-  border: 1px solid rgba(131, 114, 216, 0.4);
+  background: rgba(0, 255, 0, 0.736);
+  color: #ffffff;
+  border: 1px solid rgba(74, 222, 128, 0.55);
   padding: 4px 12px;
   border-radius: 100px;
   font-size: 0.78rem;
@@ -237,13 +242,16 @@ h1, h2, h3, h4, h5, h6 {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: rgba(12, 8, 24, 0.8);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(102, 84, 181, 0.4);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(239, 74, 64, 0.6);
 }
@@ -281,6 +289,7 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0;
     transform: scale(0.94) translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -288,8 +297,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Html5Qrcode Camera Viewfinder Styling */
