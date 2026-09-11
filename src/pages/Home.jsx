@@ -3,8 +3,19 @@ import { storeService } from '../services/store';
 import ScrollExpand from '../components/ScrollExpand';
 import Grainient from '../components/Grainient';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
+import PillButton from '../components/PillButton';
 import confetti from 'canvas-confetti';
 import { Sparkles, Calendar, Clock, MapPin, Trophy, Users, ArrowRight, X, CheckCircle, Copy, Download, ShieldAlert, Cpu } from 'lucide-react';
+
+const isCashPrize = (evt) => {
+  if (!evt) return false;
+  if (evt.hasCashPrize === false) return false;
+  if (evt.hasCashPrize === true) return true;
+  if (!evt.prize) return false;
+  const p = evt.prize.toLowerCase();
+  if (p.includes('no cash') || p.includes('nocash')) return false;
+  return p.includes('₹') || p.includes('cash') || p.includes('rs') || p.includes('inr');
+};
 
 const Home = () => {
   const [events, setEvents] = useState([]);
@@ -140,9 +151,9 @@ const Home = () => {
               Join the biggest technical event of the AI&DS department. Participate in Hackathons, Paper Presentations, Prompt Matrix Battles, and Speed Coding!
             </p>
             <div style={{ display: 'flex', gap: 14, marginTop: 12 }}>
-              <a href="#events-section" className="btn-primary">
+              <PillButton as="a" href="#events-section" variant="primary" style={{ padding: '12px 28px' }}>
                 Explore Events <ArrowRight size={18} />
-              </a>
+              </PillButton>
             </div>
           </div>
         </ScrollExpand>
@@ -182,24 +193,14 @@ const Home = () => {
           {/* Category Filter Pills */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {categories.map(cat => (
-              <button
+              <PillButton
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 100,
-                  border: categoryFilter === cat ? '1px solid #ef4a40' : '1px solid rgba(255,255,255,0.12)',
-                  background: categoryFilter === cat ? 'rgba(239, 74, 64, 0.25)' : 'rgba(255,255,255,0.04)',
-                  color: categoryFilter === cat ? '#ffffff' : 'rgba(255,255,255,0.7)',
-                  fontWeight: 600,
-                  fontSize: '0.88rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
+                variant={categoryFilter === cat ? 'active' : 'secondary'}
+                style={{ padding: '8px 18px', fontSize: '0.88rem' }}
               >
                 {cat}
-              </button>
+              </PillButton>
             ))}
           </div>
         </div>
@@ -234,7 +235,7 @@ const Home = () => {
                     <span className="badge-coral" style={{ position: 'absolute', top: 16, left: 16 }}>
                       {evt.category}
                     </span>
-                    {(evt.hasCashPrize === false || (evt.prize && evt.prize.toLowerCase().includes('no cash'))) && (
+                    {isCashPrize(evt) && evt.prize && (
                       <span className="badge-purple" style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Trophy size={13} /> {evt.prize}
                       </span>
@@ -277,14 +278,14 @@ const Home = () => {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
-                      <button
+                      <PillButton
                         onClick={() => setSelectedEvent(evt)}
-                        className="btn-secondary"
+                        variant="secondary"
                         style={{ fontSize: '0.88rem', padding: '10px' }}
                       >
                         Event Details
-                      </button>
-                      <button
+                      </PillButton>
+                      <PillButton
                         onClick={() => {
                           setRegisterModalEvent(evt);
                           setRegistrationResult(null);
@@ -297,16 +298,11 @@ const Home = () => {
                           setMemberNames(['', '', '']);
                         }}
                         disabled={registeredTeamCount >= maxSlots}
-                        className="btn-primary"
-                        style={{
-                          fontSize: '0.88rem',
-                          padding: '10px',
-                          opacity: registeredTeamCount >= maxSlots ? 0.6 : 1,
-                          cursor: registeredTeamCount >= maxSlots ? 'not-allowed' : 'pointer'
-                        }}
+                        variant="primary"
+                        style={{ fontSize: '0.88rem', padding: '10px' }}
                       >
                         {registeredTeamCount >= maxSlots ? 'Full' : 'Register Team'}
-                      </button>
+                      </PillButton>
                     </div>
                   </div>
                 </div>
@@ -386,15 +382,15 @@ const Home = () => {
             </ul>
 
             <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
-              <button
+              <PillButton
                 onClick={() => {
                   setRegisterModalEvent(selectedEvent);
                   setSelectedEvent(null);
                 }}
-                className="btn-primary"
+                variant="primary"
               >
                 Proceed to Register <ArrowRight size={16} />
-              </button>
+              </PillButton>
             </div>
           </div>
         </div>
@@ -564,9 +560,9 @@ const Home = () => {
                           </div>
                         )}
 
-                        <button type="submit" className="btn-primary" style={{ marginTop: 12, padding: '14px' }}>
+                        <PillButton type="submit" variant="primary" style={{ marginTop: 12, padding: '14px', width: '100%' }}>
                           Confirm & Generate Entry Credentials <Sparkles size={18} />
-                        </button>
+                        </PillButton>
                       </form>
                     </>
                   );
@@ -648,22 +644,22 @@ const Home = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}>
-                  <button
+                  <PillButton
                     onClick={() => {
                       const text = `Team: ${registrationResult.teamName}\nEvent: ${registrationResult.eventTitle}\n` +
                         registrationResult.members.map(m => `${m.name} (${m.role}) -> ID: ${m.userId} | Pass: ${m.password}`).join('\n');
                       copyToClipboard(text);
                     }}
-                    className="btn-secondary"
+                    variant="secondary"
                   >
                     <Copy size={16} /> Copy Credentials
-                  </button>
-                  <button
+                  </PillButton>
+                  <PillButton
                     onClick={() => setRegisterModalEvent(null)}
-                    className="btn-primary"
+                    variant="primary"
                   >
                     Done
-                  </button>
+                  </PillButton>
                 </div>
               </div>
             )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { storeService } from '../services/store';
 import QRCode from 'qrcode';
 import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode';
+import PillButton from '../components/PillButton';
 import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet } from 'lucide-react';
 
 const Manager = () => {
@@ -473,9 +474,9 @@ const Manager = () => {
               required
             />
 
-            <button type="submit" className="btn-primary" style={{ padding: '14px' }}>
+            <PillButton type="submit" variant="primary" style={{ padding: '14px', width: '100%' }}>
               Access Event Manager <Lock size={16} />
-            </button>
+            </PillButton>
           </form>
         </div>
       ) : (
@@ -490,32 +491,32 @@ const Manager = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button
+              <PillButton
                 onClick={() => {
                   setBatchStatusMessage('');
                   setShowBatchQrModal(true);
                 }}
-                className="btn-secondary"
+                variant="secondary"
               >
                 <QrCode size={18} /> Download Batch QRs (Range)
-              </button>
+              </PillButton>
 
-              <button
+              <PillButton
                 onClick={handleDownloadEventWiseCSV}
-                className="btn-secondary"
+                variant="secondary"
               >
                 <Download size={18} /> Export Event-Wise CSV
-              </button>
+              </PillButton>
 
-              <button
+              <PillButton
                 onClick={() => {
                   setOnSpotEventId(events[0]?.id || '');
                   setShowOnSpotModal(true);
                 }}
-                className="btn-primary"
+                variant="primary"
               >
                 <UserPlus size={18} /> On-Spot Registration
-              </button>
+              </PillButton>
             </div>
           </div>
 
@@ -532,54 +533,27 @@ const Manager = () => {
 
               {/* 3 Scan Mode Selector Tabs */}
               <div style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,0.06)', padding: 4, borderRadius: 100, border: '1px solid rgba(255,255,255,0.12)' }}>
-                <button
+                <PillButton
                   onClick={() => setScanMode('attendance')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: 100,
-                    border: 'none',
-                    background: scanMode === 'attendance' ? '#ef4a40' : 'transparent',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
+                  variant={scanMode === 'attendance' ? 'active' : 'secondary'}
+                  style={{ padding: '8px 18px', fontSize: '0.85rem' }}
                 >
                   📋 Attendance
-                </button>
-                <button
+                </PillButton>
+                <PillButton
                   onClick={() => setScanMode('lunch')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: 100,
-                    border: 'none',
-                    background: scanMode === 'lunch' ? '#22c55e' : 'transparent',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
+                  variant={scanMode === 'lunch' ? 'active' : 'secondary'}
+                  style={{ padding: '8px 18px', fontSize: '0.85rem' }}
                 >
                   🍱 Lunch
-                </button>
-                <button
+                </PillButton>
+                <PillButton
                   onClick={() => setScanMode('snacks')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: 100,
-                    border: 'none',
-                    background: scanMode === 'snacks' ? '#eab308' : 'transparent',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
+                  variant={scanMode === 'snacks' ? 'active' : 'secondary'}
+                  style={{ padding: '8px 18px', fontSize: '0.85rem' }}
                 >
                   ☕ Snacks
-                </button>
+                </PillButton>
               </div>
             </div>
 
@@ -598,12 +572,12 @@ const Manager = () => {
 
                 {!isCameraActive ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button onClick={startCameraScan} className="btn-secondary" style={{ width: '100%', padding: '12px', gap: 8, justifyContent: 'center' }}>
+                    <PillButton onClick={startCameraScan} variant="secondary" style={{ width: '100%', padding: '12px' }}>
                       <Camera size={16} /> Open Device Camera ({scanMode.toUpperCase()})
-                    </button>
-                    <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="btn-secondary" style={{ width: '100%', padding: '10px', fontSize: '0.88rem', gap: 8, justifyContent: 'center' }}>
+                    </PillButton>
+                    <PillButton onClick={() => fileInputRef.current && fileInputRef.current.click()} variant="secondary" style={{ width: '100%', padding: '10px', fontSize: '0.88rem' }}>
                       <Upload size={16} /> Upload QR Image File
-                    </button>
+                    </PillButton>
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -615,17 +589,17 @@ const Manager = () => {
                 ) : (
                   <div>
                     <div id="qr-reader" style={{ width: '100%', borderRadius: 12, overflow: 'hidden' }}></div>
-                    <button onClick={stopCameraScan} className="btn-secondary" style={{ marginTop: 10, width: '100%', padding: '10px' }}>
+                    <PillButton onClick={stopCameraScan} variant="secondary" style={{ marginTop: 10, width: '100%', padding: '10px' }}>
                       Close Camera
-                    </button>
+                    </PillButton>
                   </div>
                 )}
               </div>
 
-              {/* Manual Code Entry Box */}
+              {/* Manual Token Verification Box */}
               <div style={{ background: 'rgba(12, 8, 24, 0.6)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: 20 }}>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <QrCode size={18} color="#4ade80" /> Manual Token Verification
+                  <Search size={18} color="#4ade80" /> Manual Token / ID Entry
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
                   Enter Team ID (e.g. <code>TM-E1-01</code>) or Student ID (e.g. <code>STD-101</code>) for <strong style={{ color: '#fff' }}>{scanMode.toUpperCase()}</strong>.
@@ -639,9 +613,9 @@ const Manager = () => {
                     value={manualToken}
                     onChange={e => setManualToken(e.target.value)}
                   />
-                  <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                  <PillButton type="submit" variant="primary" style={{ whiteSpace: 'nowrap' }}>
                     Verify {scanMode.toUpperCase()}
-                  </button>
+                  </PillButton>
                 </form>
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import { isSupabaseConfigured } from '../services/supabase';
+import PillButton from '../components/PillButton';
 import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Key, CheckCircle, Lock, Save, RefreshCw, ChevronDown, ChevronUp, Users } from 'lucide-react';
 
 const Admin = () => {
@@ -230,9 +231,9 @@ const Admin = () => {
               required
             />
 
-            <button type="submit" className="btn-primary" style={{ padding: '14px' }}>
+            <PillButton type="submit" variant="primary" style={{ padding: '14px', width: '100%' }}>
               Unlock Admin Portal <Lock size={16} />
-            </button>
+            </PillButton>
           </form>
         </div>
       ) : (
@@ -247,12 +248,12 @@ const Admin = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={handleDownloadJSON} className="btn-secondary">
+              <PillButton onClick={handleDownloadJSON} variant="secondary">
                 <Download size={16} /> Export JSON Backup
-              </button>
-              <button onClick={handleDownloadCSV} className="btn-primary">
+              </PillButton>
+              <PillButton onClick={handleDownloadCSV} variant="primary">
                 <Download size={16} /> Download CSV Roster
-              </button>
+              </PillButton>
             </div>
           </div>
 
@@ -269,27 +270,27 @@ const Admin = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
+              <PillButton
                 onClick={() => setActiveTab('events')}
-                className={activeTab === 'events' ? 'btn-primary' : 'btn-secondary'}
+                variant={activeTab === 'events' ? 'active' : 'secondary'}
                 style={{ padding: '8px 16px', fontSize: '0.85rem' }}
               >
                 Manage Events ({events.length})
-              </button>
-              <button
+              </PillButton>
+              <PillButton
                 onClick={() => setActiveTab('teams')}
-                className={activeTab === 'teams' ? 'btn-primary' : 'btn-secondary'}
+                variant={activeTab === 'teams' ? 'active' : 'secondary'}
                 style={{ padding: '8px 16px', fontSize: '0.85rem' }}
               >
                 Registered Teams ({teams.length})
-              </button>
-              <button
+              </PillButton>
+              <PillButton
                 onClick={() => setActiveTab('passwords')}
-                className={activeTab === 'passwords' ? 'btn-primary' : 'btn-secondary'}
+                variant={activeTab === 'passwords' ? 'active' : 'secondary'}
                 style={{ padding: '8px 16px', fontSize: '0.85rem' }}
               >
                 Passwords
-              </button>
+              </PillButton>
             </div>
           </div>
 
@@ -298,7 +299,7 @@ const Admin = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Events Catalog</h3>
-                <button
+                <PillButton
                   onClick={() => {
                     setEditingEventId(null);
                     setTitle('');
@@ -313,11 +314,11 @@ const Admin = () => {
                     setImage('');
                     setShowEventModal(true);
                   }}
-                  className="btn-primary"
+                  variant="primary"
                   style={{ padding: '10px 18px', fontSize: '0.88rem' }}
                 >
                   <Plus size={16} /> Add New Event
-                </button>
+                </PillButton>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
@@ -408,17 +409,18 @@ const Admin = () => {
                             </span>
                           </td>
                           <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                            <button
+                            <PillButton
                               onClick={async () => {
                                 if (confirm(`Remove team ${t.teamName}?`)) {
                                   await storeService.deleteTeam(t.id);
                                   await loadAdminData();
                                 }
                               }}
-                              style={{ background: 'rgba(239,74,64,0.2)', border: 'none', color: '#ff8a82', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem' }}
+                              variant="danger"
+                              style={{ padding: '6px 14px', fontSize: '0.8rem' }}
                             >
                               Remove
-                            </button>
+                            </PillButton>
                           </td>
                         </tr>
 
@@ -488,9 +490,9 @@ const Admin = () => {
                     required
                   />
                 </div>
-                <button type="submit" className="btn-primary" style={{ marginTop: 8 }}>
+                <PillButton type="submit" variant="primary" style={{ marginTop: 8 }}>
                   <Save size={16} /> Save Passwords
-                </button>
+                </PillButton>
               </form>
             </div>
           )}
@@ -590,8 +592,8 @@ const Admin = () => {
                     <textarea className="glass-input" rows={3} value={rulesStr} onChange={e => setRulesStr(e.target.value)} />
                   </div>
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
-                    <button type="button" onClick={() => setShowEventModal(false)} className="btn-secondary">Cancel</button>
-                    <button type="submit" className="btn-primary">Save Event</button>
+                    <PillButton type="button" onClick={() => setShowEventModal(false)} variant="secondary">Cancel</PillButton>
+                    <PillButton type="submit" variant="primary">Save Event</PillButton>
                   </div>
                 </form>
               </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import QRCode from 'qrcode';
+import PillButton from '../components/PillButton';
 import { User, LogOut, QrCode as QrIcon, Shield, CheckCircle2, Clock, MapPin, Printer } from 'lucide-react';
 
 const StudentProfile = () => {
@@ -250,9 +251,9 @@ const StudentProfile = () => {
               />
             </div>
 
-            <button type="submit" className="btn-primary" style={{ padding: '14px', marginTop: 6 }}>
+            <PillButton type="submit" variant="primary" style={{ padding: '14px', marginTop: 6, width: '100%' }}>
               Login to View Profile & QR Code
-            </button>
+            </PillButton>
 
             <div style={{ textAlign: 'center', marginTop: 12, fontSize: '0.82rem', color: 'var(--text-subtle)' }}>
               Demo Login for testing: UserID <strong>STD-101</strong> / Password <strong>pass-101</strong>
@@ -265,9 +266,9 @@ const StudentProfile = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Student Portal</h2>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={handleLogout} className="btn-secondary" style={{ background: 'rgba(239, 74, 64, 0.2)' }}>
+              <PillButton onClick={handleLogout} variant="danger">
                 <LogOut size={16} /> Logout
-              </button>
+              </PillButton>
             </div>
           </div>
 
@@ -427,13 +428,13 @@ const StudentProfile = () => {
                       alt="Participant QR"
                       style={{ width: 190, height: 190, borderRadius: 16, border: '5px solid #ffffff', background: '#fff' }}
                     />
-                    <button
+                    <PillButton
                       onClick={handleDownloadQR}
-                      className="btn-secondary"
-                      style={{ marginTop: 12, width: '100%', padding: '8px 12px', fontSize: '0.82rem', gap: 6, justifyContent: 'center' }}
+                      variant="secondary"
+                      style={{ marginTop: 12, width: '100%', padding: '8px 12px', fontSize: '0.82rem' }}
                     >
                       <QrIcon size={14} /> Download QR Badge Image
-                    </button>
+                    </PillButton>
                   </>
                 )}
 
