@@ -26,17 +26,25 @@
   top: 0;
   width: 100%;
   overflow: hidden;
-  background: #0a0614;
+  background: #060b07;
   --se-title-size: 4rem;
 }
 
 .scroll-expand__frame {
   position: absolute;
   inset: 0;
-  background: transparent;
   will-change: clip-path;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 50px rgba(102, 84, 181, 0.4);
+  border: none;
+  background-color: #060b07;
+}
+
+.scroll-expand__black-cover {
+  position: absolute;
+  inset: 0;
+  background-color: #060b07;
+  z-index: 1;
+  pointer-events: none;
+  will-change: opacity;
 }
 
 .scroll-expand__media {
@@ -55,7 +63,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(to top, rgba(12, 8, 24, 0.95), rgba(12, 8, 24, 0.3) 45%, rgba(12, 8, 24, 0.5));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.35));
   opacity: 0;
 }
 
@@ -67,7 +75,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 6%;
+  padding: 0;
   opacity: 0;
   will-change: opacity, transform;
 }
@@ -86,7 +94,7 @@
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: #fff;
-  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(239, 74, 64, 0.6);
+  text-shadow: none;
   pointer-events: none;
   will-change: opacity, transform;
 }

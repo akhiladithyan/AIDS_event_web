@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import ScrollExpand from '../components/ScrollExpand';
+import DoomsdayHero from '../components/DoomsdayHero';
 import Grainient from '../components/Grainient';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
 import PillButton from '../components/PillButton';
@@ -27,6 +28,14 @@ const Home = () => {
   const [registerModalEvent, setRegisterModalEvent] = useState(null);
   const [teamName, setTeamName] = useState('');
   const [college, setCollege] = useState('');
+
+  // Always start at top of page on refresh/mount
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, []);
   const [department, setDepartment] = useState('');
   const [leaderName, setLeaderName] = useState('');
   const [leaderPhone, setLeaderPhone] = useState('');
@@ -117,45 +126,23 @@ const Home = () => {
   };
 
   return (
-    <div style={{ paddingBottom: 80, position: 'relative', zIndex: 1, background: 'transparent' }}>
+    <div style={{ marginTop: '-100px', paddingBottom: 80, position: 'relative', zIndex: 1, background: 'transparent' }}>
       {/* ScrollExpand Hero Section */}
       <div style={{ position: 'relative', width: '100%', marginBottom: 40, background: 'transparent' }}>
         <ScrollExpand
-          title="NEURA 2026"
+          src="/images/doom-hero.jpg"
+          title="AIDEX 2026"
           scrollHint="Scroll down to expand frame & reveal events"
-          startWidth={65}
-          startHeight={60}
-          startRadius={28}
+          startWidth={100}
+          startHeight={100}
+          startRadius={0}
           endRadius={0}
           scrollDistance={1.4}
           holdDistance={0.4}
           useWindowScroll={true}
           onProgressChange={handleProgressChange}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <span className="badge-coral" style={{ fontSize: '0.9rem', padding: '6px 18px' }}>
-              DEPT OF ARTIFICIAL INTELLIGENCE & DATA SCIENCE
-            </span>
-            <h1 style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4.5rem)',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              background: 'linear-gradient(135deg, #ffffff 0%, #dcd4ff 50%, #ef4a40 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 10px 40px rgba(0,0,0,0.5)'
-            }}>
-              INNOVATE. CODE. TRANSFORM.
-            </h1>
-            <p style={{ maxWidth: 640, color: 'rgba(255,255,255,0.85)', fontSize: '1.1rem', lineHeight: 1.6 }}>
-              Join the biggest technical event of the AI&DS department. Participate in Hackathons, Paper Presentations, Prompt Matrix Battles, and Speed Coding!
-            </p>
-            <div style={{ display: 'flex', gap: 14, marginTop: 12 }}>
-              <PillButton as="a" href="#events-section" variant="primary" style={{ padding: '12px 28px' }}>
-                Explore Events <ArrowRight size={18} />
-              </PillButton>
-            </div>
-          </div>
+          <DoomsdayHero bgImage="/images/doom-hero.jpg" />
         </ScrollExpand>
       </div>
 

@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import './ScrollExpand.css';
+import GradientText from './GradientText';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -15,21 +16,21 @@ const ScrollExpand = ({
   alt = '',
   title = '',
   scrollHint = '',
-  startWidth = 42,
-  startHeight = 58,
-  startRadius = 24,
+  startWidth = 100,
+  startHeight = 100,
+  startRadius = 0,
   endRadius = 0,
   mediaZoom = 1.35,
-  scrollDistance = 1.2,
-  holdDistance = 0.35,
+  scrollDistance = 1.4,
+  holdDistance = 0.4,
   smoothing = 0.1,
   overlayScrim = 0.45,
   useWindowScroll = false,
   enabled = true,
   children,
-  customMedia,
   className = '',
   style,
+  onProgressChange,
   ...rest
 }) => {
   const rootRef = useRef(null);
@@ -37,6 +38,7 @@ const ScrollExpand = ({
   const stageRef = useRef(null);
   const frameRef = useRef(null);
   const mediaRef = useRef(null);
+  const blackCoverRef = useRef(null);
   const titleRef = useRef(null);
   const overlayRef = useRef(null);
   const scrimRef = useRef(null);
@@ -55,7 +57,7 @@ const ScrollExpand = ({
     overlayScrim,
     useWindowScroll,
     enabled,
-    onProgressChange: rest.onProgressChange
+    onProgressChange
   };
 
   const applyProgress = useCallback(p => {
@@ -74,35 +76,43 @@ const ScrollExpand = ({
     const h = c.startHeight + (100 - c.startHeight) * e;
     const ix = Math.max(0, (100 - w) / 2);
     const iy = Math.max(0, (100 - h) / 2);
-    const r = (1 - e) * c.startRadius;
-
-    // Expanded inset window revealing the animated gradient background underneath
+    const r = c.startRadius + (c.endRadius - c.startRadius) * e;
+    
     if (e >= 0.999) {
       frame.style.clipPath = 'none';
     } else {
       frame.style.clipPath = `inset(${iy}% ${ix}% ${iy}% ${ix}% round ${r}px)`;
     }
 
+    if (media) {
+      media.style.transform = `scale(${c.mediaZoom + (1 - c.mediaZoom) * e})`;
+    }
+
     if (stageRef.current) {
-      stageRef.current.style.backgroundColor = `rgba(10, 6, 20, ${1 - smoothstep(0.7, 1, p)})`;
+      stageRef.current.style.backgroundColor = `rgba(6, 11, 7, ${1 - smoothstep(0.75, 1, p)})`;
+    }
+
+    if (blackCoverRef.current) {
+      // Keep box solid black while expanding, then reveal image as box fills screen
+      blackCoverRef.current.style.opacity = `${1 - smoothstep(0.35, 0.85, p)}`;
     }
 
     if (scrimRef.current) scrimRef.current.style.opacity = `${c.overlayScrim * e}`;
 
     if (titleRef.current) {
-      const out = smoothstep(0.4, 0.88, p);
+      const out = smoothstep(0.2, 0.65, p);
       titleRef.current.style.opacity = `${1 - out}`;
       titleRef.current.style.transform = `translate3d(0, ${-28 * out}px, 0) scale(${1 + 0.06 * out})`;
     }
 
     if (hintRef.current) {
-      const gone = smoothstep(0, 0.12, p);
+      const gone = smoothstep(0, 0.15, p);
       hintRef.current.style.opacity = `${1 - gone}`;
       hintRef.current.style.transform = `translate3d(0, ${8 * gone}px, 0)`;
     }
 
     if (overlayRef.current) {
-      const inn = smoothstep(0.68, 1, p);
+      const inn = smoothstep(0.4, 0.88, p);
       overlayRef.current.style.opacity = `${inn}`;
       overlayRef.current.style.transform = `translate3d(0, ${18 * (1 - inn)}px, 0)`;
     }
@@ -130,7 +140,7 @@ const ScrollExpand = ({
       track.style.height = `${stageH * (1 + Math.max(0, c.scrollDistance) + Math.max(0, c.holdDistance))}px`;
 
       const w = root.clientWidth || stageH;
-      stage.style.setProperty('--se-title-size', `${clamp(w * 0.065, 22, 72)}px`);
+      stage.style.setProperty('--se-title-size', `${clamp(w * 0.075, 20, 84)}px`);
     };
 
     const readProgress = () => {
@@ -138,8 +148,8 @@ const ScrollExpand = ({
       if (!c.enabled) return 1;
       const span = stageH * Math.max(0.01, c.scrollDistance);
       if (c.useWindowScroll) {
-        const rect = track.getBoundingClientRect();
-        return clamp(-rect.top / span, 0, 1);
+        const top = track.getBoundingClientRect().top;
+        return clamp(-top / span, 0, 1);
       }
       return clamp(root.scrollTop / span, 0, 1);
     };
@@ -198,24 +208,21 @@ const ScrollExpand = ({
     };
   }, [applyProgress, useWindowScroll]);
 
-  const media = customMedia ? (
-    <div ref={mediaRef} className="scroll-expand__media" style={{ width: '100%', height: '100%' }}>
-      {customMedia}
-    </div>
-  ) : mediaType === 'video' && src ? (
-    <video
-      ref={mediaRef}
-      className="scroll-expand__media"
-      src={src}
-      poster={poster}
-      autoPlay
-      muted
-      loop
-      playsInline
-    />
-  ) : src ? (
-    <img ref={mediaRef} className="scroll-expand__media" src={src} alt={alt} draggable={false} />
-  ) : null;
+  const media =
+    mediaType === 'video' && src ? (
+      <video
+        ref={mediaRef}
+        className="scroll-expand__media"
+        src={src}
+        poster={poster}
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    ) : src ? (
+      <img ref={mediaRef} className="scroll-expand__media" src={src} alt={alt} draggable={false} />
+    ) : null;
 
   return (
     <div
@@ -228,6 +235,7 @@ const ScrollExpand = ({
         <div ref={stageRef} className="scroll-expand__stage">
           <div ref={frameRef} className="scroll-expand__frame">
             {media}
+            <div ref={blackCoverRef} className="scroll-expand__black-cover" />
             <div ref={scrimRef} className="scroll-expand__scrim" />
             {children ? (
               <div ref={overlayRef} className="scroll-expand__overlay">
@@ -237,7 +245,17 @@ const ScrollExpand = ({
           </div>
           {title ? (
             <div ref={titleRef} className="scroll-expand__title">
-              {title}
+              {typeof title === 'string' ? (
+                <GradientText
+                  colors={['#84CC16', '#206419', '#8acc21']}
+                  animationSpeed={6}
+                  showBorder={false}
+                >
+                  {title}
+                </GradientText>
+              ) : (
+                title
+              )}
             </div>
           ) : null}
           {scrollHint ? (

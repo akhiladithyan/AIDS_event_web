@@ -131,7 +131,7 @@ const Results = () => {
           fontWeight: 700,
           marginBottom: 12
         }}>
-          <Trophy size={16} /> NEURA '26 EVENT WINNERS
+          <Trophy size={16} /> AIDEX '26 EVENT WINNERS
         </div>
         <h1 style={{ fontSize: '2.8rem', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 12px 0' }}>
           Official Hall of Fame & Results

@@ -11,10 +11,16 @@ import Grainient from './components/Grainient';
 import Results from './pages/Results';
 import Scan from './pages/Scan';
 import Pass from './pages/Pass';
+import LoadingScreen from './components/LoadingScreen';
 
 function App() {
+  const [isLoading, setIsLoading] = React.useState(true);
+
   return (
     <BrowserRouter>
+      {/* CYBERPUNK LOADING SCREEN FOR AIDEX '26 */}
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
+
       {/* GLOBAL DYNAMIC GRADIENT BACKGROUND FOR THE WHOLE WEBSITE */}
       <div style={{
         position: 'fixed',
@@ -62,7 +68,7 @@ function App() {
           position: 'relative',
           zIndex: 1
         }}>
-          <div>NEURA 2026 &copy; Department of Artificial Intelligence & Data Science</div>
+          <div>AIDEX 2026 &copy; Department of Artificial Intelligence & Data Science</div>
           <div style={{ fontSize: '0.78rem', marginTop: 4, color: 'rgba(255, 255, 255, 0.4)' }}>
             Powered by React, Supabase & Glassmorphism UI Architecture
           </div>

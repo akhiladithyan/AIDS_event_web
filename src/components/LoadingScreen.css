@@ -1,0 +1,308 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap');
+
+.aidex-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background-color: #020603;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  color: #00ff80;
+  user-select: none;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+}
+
+.aidex-glitch-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.aidex-loading-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.aidex-loading-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 780px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Badge at top */
+.aidex-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 128, 0.5);
+  background: rgba(0, 20, 10, 0.85);
+  box-shadow: 0 0 15px rgba(0, 255, 128, 0.25), inset 0 0 10px rgba(0, 255, 128, 0.15);
+  font-size: 0.75rem;
+  letter-spacing: 2.5px;
+  color: #00ff80;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.aidex-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #00ff80;
+  box-shadow: 0 0 8px #00ff80;
+  animation: pulse-dot 1.5s infinite alternate;
+}
+
+@keyframes pulse-dot {
+  0% { opacity: 0.4; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Main title with Glitch Effect */
+.aidex-title-wrap {
+  text-align: center;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.aidex-glitch-title {
+  position: relative;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(3.5rem, 8.5vw, 5.8rem);
+  font-weight: 900;
+  color: #a6ffce;
+  letter-spacing: 4px;
+  line-height: 1;
+  margin: 0;
+  text-shadow: 
+    0 0 10px rgba(0, 255, 128, 0.8),
+    0 0 25px rgba(0, 255, 128, 0.6),
+    0 0 50px rgba(0, 255, 128, 0.4);
+}
+
+/* CSS Glitch Layer Effects */
+.aidex-glitch-title::before,
+.aidex-glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  letter-spacing: 4px;
+}
+
+.aidex-glitch-title::before {
+  left: 2px;
+  text-shadow: -2px 0 #ff0055;
+  clip: rect(24px, 550px, 90px, 0);
+  animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+}
+
+.aidex-glitch-title::after {
+  left: -2px;
+  text-shadow: -2px 0 #00e5ff;
+  clip: rect(85px, 550px, 140px, 0);
+  animation: glitch-anim-2 2s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim-1 {
+  0% { clip: rect(10px, 9999px, 40px, 0); transform: skew(0.3deg); }
+  20% { clip: rect(60px, 9999px, 85px, 0); transform: skew(-0.5deg); }
+  40% { clip: rect(20px, 9999px, 50px, 0); transform: skew(0.8deg); }
+  60% { clip: rect(70px, 9999px, 90px, 0); transform: skew(-0.2deg); }
+  80% { clip: rect(30px, 9999px, 65px, 0); transform: skew(0.5deg); }
+  100% { clip: rect(15px, 9999px, 45px, 0); transform: skew(-0.3deg); }
+}
+
+@keyframes glitch-anim-2 {
+  0% { clip: rect(50px, 9999px, 80px, 0); transform: skew(-0.4deg); }
+  25% { clip: rect(15px, 9999px, 35px, 0); transform: skew(0.6deg); }
+  50% { clip: rect(75px, 9999px, 105px, 0); transform: skew(-0.8deg); }
+  75% { clip: rect(35px, 9999px, 60px, 0); transform: skew(0.3deg); }
+  100% { clip: rect(5px, 9999px, 25px, 0); transform: skew(-0.5deg); }
+}
+
+.aidex-subtitle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.aidex-subtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 8px;
+  color: #00ff80;
+  text-shadow: 0 0 10px rgba(0, 255, 128, 0.7);
+  text-transform: uppercase;
+}
+
+.aidex-square-icon {
+  width: 10px;
+  height: 10px;
+  background-color: #00ff80;
+  box-shadow: 0 0 10px #00ff80;
+}
+
+/* Progress bar section */
+.aidex-progress-wrapper {
+  width: 100%;
+  margin-top: 15px;
+  position: relative;
+}
+
+.aidex-progress-outer {
+  width: 100%;
+  height: 32px;
+  background: rgba(0, 15, 8, 0.9);
+  border: 1.5px solid rgba(0, 255, 128, 0.6);
+  border-radius: 16px;
+  padding: 4px 6px;
+  box-shadow: 
+    0 0 15px rgba(0, 255, 128, 0.2),
+    inset 0 0 12px rgba(0, 20, 10, 0.9);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.aidex-progress-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 3px;
+}
+
+.aidex-progress-segment {
+  flex: 1;
+  height: 100%;
+  background: rgba(0, 40, 20, 0.3);
+  border-radius: 2px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.aidex-progress-segment.active {
+  background: #00ff80;
+  box-shadow: 0 0 8px #00ff80, 0 0 12px rgba(0, 255, 128, 0.8);
+}
+
+/* Bottom status bar */
+.aidex-status-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 0 4px;
+}
+
+.aidex-status-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aidex-telemetry-tag {
+  font-size: 0.68rem;
+  color: rgba(0, 255, 128, 0.45);
+  letter-spacing: 2px;
+}
+
+.aidex-access-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #00ff80;
+  letter-spacing: 3px;
+  text-shadow: 0 0 8px rgba(0, 255, 128, 0.7);
+}
+
+.aidex-split-flap-wrap {
+  margin-top: 4px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(0, 255, 128, 0.8);
+}
+
+.aidex-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background-color: #00ff80;
+  margin-left: 4px;
+  animation: blink 0.8s infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.aidex-percent-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 
+    0 0 10px rgba(0, 255, 128, 0.9),
+    0 0 25px rgba(0, 255, 128, 0.6);
+  letter-spacing: -1px;
+}
+
+.aidex-percent-symbol {
+  font-size: 1.5rem;
+  color: #00ff80;
+  margin-left: 2px;
+}
+
+/* Bottom footer text */
+.aidex-footer-info {
+  position: absolute;
+  bottom: 24px;
+  z-index: 1;
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  color: rgba(0, 255, 128, 0.55);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .aidex-subtitle {
+    font-size: 0.85rem;
+    letter-spacing: 4px;
+  }
+
+  .aidex-percent-text {
+    font-size: 2.2rem;
+  }
+
+  .aidex-progress-outer {
+    height: 26px;
+  }
+}

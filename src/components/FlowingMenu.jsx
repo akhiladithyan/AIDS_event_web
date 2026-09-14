@@ -157,7 +157,7 @@ function MenuItem({ id, text, subtext, image, isDone, speed, textColor, marqueeB
             {[...Array(repetitions)].map((_, idx) => (
               <div className="marquee__part" key={idx} style={{ color: marqueeTextColor }}>
                 <span>{text}</span>
-                <span className="marquee__subtext">• {subtext || 'NEURA 2026'}</span>
+                <span className="marquee__subtext">• {subtext || 'AIDEX 2026'}</span>
                 <div className="marquee__img" style={{ backgroundImage: `url(${image})` }} />
               </div>
             ))}

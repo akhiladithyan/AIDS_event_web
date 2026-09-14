@@ -63,7 +63,7 @@ const Navbar = () => {
           gap: 4,
           lineHeight: 1.1
         }}>
-          NEURA <span style={{ color: '#ef4a40' }}>'26</span>
+          AIDEX <span style={{ color: '#ef4a40' }}>'26</span>
           <Sparkles size={12} color="#ef4a40" />
         </div>
         <div style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, letterSpacing: '0.05em', lineHeight: 1 }}>
