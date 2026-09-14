@@ -97,34 +97,41 @@ const StudentProfile = () => {
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
 
-      // Dark background gradient matching theme
+      // Dark background gradient matching theme (#0c0618 to #080312)
       const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-      grad.addColorStop(0, '#130a2a');
-      grad.addColorStop(1, '#090514');
+      grad.addColorStop(0, '#0c0618');
+      grad.addColorStop(1, '#05020a');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      // Decorative Top Border
+      // Top decorative gradient bar (Coral Red -> Purple)
       const topGrad = ctx.createLinearGradient(0, 0, canvasWidth, 0);
       topGrad.addColorStop(0, '#ef4a40');
+      topGrad.addColorStop(0.5, '#9a4789');
       topGrad.addColorStop(1, '#6654b5');
       ctx.fillStyle = topGrad;
-      ctx.fillRect(0, 0, canvasWidth, 12);
+      ctx.fillRect(0, 0, canvasWidth, 14);
 
-      // Event Name & Header
+      // Event Title Header (e.g. DATA SCIENCE SYMPOSIUM)
       ctx.textAlign = 'center';
       ctx.fillStyle = '#a395f3';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.fillText((teamInfo.eventTitle || 'AI & DS Event 2026').toUpperCase(), canvasWidth / 2, 54);
+      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+      const eventName = (teamInfo.eventTitle || 'AI & DS EVENT 2026').toUpperCase();
+      ctx.fillText(eventName, canvasWidth / 2, 60);
 
-      // Card Badge / Tag
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      // Pill Tag Badge "OFFICIAL EVENT PASS"
+      const pillWidth = 260;
+      const pillHeight = 36;
+      const pillX = (canvasWidth - pillWidth) / 2;
+      const pillY = 76;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.beginPath();
-      ctx.roundRect(canvasWidth / 2 - 120, 70, 240, 32, 16);
+      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 18);
       ctx.fill();
+
       ctx.fillStyle = '#ef4a40';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText('OFFICIAL EVENT PASS', canvasWidth / 2, 91);
+      ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+      ctx.fillText('OFFICIAL EVENT PASS', canvasWidth / 2, pillY + 23);
 
       // Load QR image onto canvas
       const img = new Image();
@@ -135,50 +142,53 @@ const StudentProfile = () => {
         img.onerror = reject;
       });
 
-      // White QR background frame
-      const qrSize = 360;
-      const qrX = (canvasWidth - qrSize) / 2;
-      const qrY = 120;
+      // Big White Rounded Container for QR Code
+      const qrBoxSize = 360;
+      const qrBoxX = (canvasWidth - qrBoxSize) / 2;
+      const qrBoxY = 132;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.roundRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 24);
+      ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
       ctx.fill();
 
-      // Draw QR image
-      ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+      // Draw QR image centered inside the white container
+      const qrPadding = 24;
+      ctx.drawImage(img, qrBoxX + qrPadding, qrBoxY + qrPadding, qrBoxSize - (qrPadding * 2), qrBoxSize - (qrPadding * 2));
 
-      // Student Name Label Below QR
+      // Participant Name (Large & Bold)
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 34px sans-serif';
-      ctx.fillText(loggedUser.name, canvasWidth / 2, 540);
+      ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+      ctx.fillText(loggedUser.name, canvasWidth / 2, 538);
 
-      // Student Details (User ID, Role, Team)
+      // ID & Role line (Green highlight)
       ctx.fillStyle = '#4ade80';
-      ctx.font = 'bold 22px monospace';
-      ctx.fillText(`ID: ${loggedUser.userId}  |  ${loggedUser.role || 'Member'}`, canvasWidth / 2, 578);
+      ctx.font = 'bold 22px system-ui, -apple-system, monospace';
+      ctx.fillText(`ID: ${loggedUser.userId}    |    ${loggedUser.role || 'Leader'}`, canvasWidth / 2, 578);
 
+      // Team Line (Light Lavender)
       ctx.fillStyle = '#a395f3';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(`Team: ${teamInfo.teamName} (${teamInfo.id})`, canvasWidth / 2, 616);
+      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`Team: ${teamInfo.teamName} (${teamInfo.id})`, canvasWidth / 2, 618);
 
+      // College Line (Subtle bottom text)
       if (teamInfo.college && teamInfo.college !== 'N/A') {
-        ctx.fillStyle = '#8e82cf';
-        ctx.font = '16px sans-serif';
-        ctx.fillText(teamInfo.college, canvasWidth / 2, 650);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.font = '15px system-ui, -apple-system, sans-serif';
+        ctx.fillText(teamInfo.college, canvasWidth / 2, 654);
       }
 
-      // Download composite image
+      // Trigger automatic download
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `QR_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
+      a.download = `QR_Pass_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
       a.click();
     } catch (err) {
       console.error('Error generating custom QR badge image:', err);
       // Fallback
       const a = document.createElement('a');
       a.href = qrCodeUrl;
-      a.download = `QR_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
+      a.download = `QR_Pass_${loggedUser.userId}_${loggedUser.name.replace(/\s+/g, '_')}.png`;
       a.click();
     }
   };

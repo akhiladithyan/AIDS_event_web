@@ -32,6 +32,7 @@ const Navbar = () => {
 
   const navItems = [
     { label: 'Events', href: '/' },
+    { label: 'Results', href: '/results' },
     { label: 'Student Profile', href: '/student' }
   ];
 

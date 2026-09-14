@@ -3,9 +3,10 @@ import { storeService } from '../services/store';
 import QRCode from 'qrcode';
 import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode';
 import PillButton from '../components/PillButton';
-import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet } from 'lucide-react';
+import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet, Mail } from 'lucide-react';
 
 const Manager = () => {
+  const [usernameInput, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passError, setPassError] = useState('');
@@ -53,11 +54,8 @@ const Manager = () => {
   const [onSpotLeaderPhone, setOnSpotLeaderPhone] = useState('');
 
   useEffect(() => {
-    const savedAuth = sessionStorage.getItem('neura_manager_auth');
-    if (savedAuth === 'true') {
-      setIsAuthenticated(true);
-      loadManagerData();
-    }
+    // Mandatory password lock: Require password entry on every page visit
+    setIsAuthenticated(false);
   }, []);
 
   const loadManagerData = async () => {
@@ -72,14 +70,14 @@ const Manager = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const isValid = await storeService.verifyManagerPassword(password);
-      if (isValid) {
+      const res = await storeService.verifyUserAccess({ username: usernameInput, password, requiredLevel: 'manager' });
+      if (res.success) {
         setIsAuthenticated(true);
         sessionStorage.setItem('neura_manager_auth', 'true');
         setPassError('');
         await loadManagerData();
       } else {
-        setPassError('Incorrect Manager Password! (Verification failed via Supabase service)');
+        setPassError(res.error || 'Access Denied! Manager permissions required.');
       }
     } catch (err) {
       setPassError(err.message || 'Authentication error');
@@ -277,19 +275,114 @@ const Manager = () => {
     a.click();
   };
 
+  const generateBadgeCanvas = async (member, team) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWidth = 600;
+    const canvasHeight = 740;
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Dark background gradient matching theme
+    const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    grad.addColorStop(0, '#0c0618');
+    grad.addColorStop(1, '#05020a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Top decorative gradient bar (Coral Red -> Purple)
+    const topGrad = ctx.createLinearGradient(0, 0, canvasWidth, 0);
+    topGrad.addColorStop(0, '#ef4a40');
+    topGrad.addColorStop(0.5, '#9a4789');
+    topGrad.addColorStop(1, '#6654b5');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, canvasWidth, 14);
+
+    // Event Title Header (e.g. DATA SCIENCE SYMPOSIUM)
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#a395f3';
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    const eventName = (team.eventTitle || 'AI & DS EVENT 2026').toUpperCase();
+    ctx.fillText(eventName, canvasWidth / 2, 60);
+
+    // Pill Tag Badge "OFFICIAL EVENT PASS"
+    const pillWidth = 260;
+    const pillHeight = 36;
+    const pillX = (canvasWidth - pillWidth) / 2;
+    const pillY = 76;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.beginPath();
+    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 18);
+    ctx.fill();
+
+    ctx.fillStyle = '#ef4a40';
+    ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+    ctx.fillText('OFFICIAL EVENT PASS', canvasWidth / 2, pillY + 23);
+
+    // Generate QR Code URL
+    const qrToken = member.qrToken || `QR-${member.userId}-${team.id}`;
+    let qrUrl = member.qrCodeUrl;
+    if (!qrUrl) {
+      qrUrl = await QRCode.toDataURL(qrToken, { width: 500, margin: 2 });
+    }
+
+    // Load QR image onto canvas
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = qrUrl;
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+
+    // Big White Rounded Container for QR Code
+    const qrBoxSize = 360;
+    const qrBoxX = (canvasWidth - qrBoxSize) / 2;
+    const qrBoxY = 132;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
+    ctx.fill();
+
+    // Draw QR image centered inside white container
+    const qrPadding = 24;
+    ctx.drawImage(img, qrBoxX + qrPadding, qrBoxY + qrPadding, qrBoxSize - (qrPadding * 2), qrBoxSize - (qrPadding * 2));
+
+    // Participant Name (Large & Bold)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+    ctx.fillText(member.name, canvasWidth / 2, 538);
+
+    // ID & Role line (Green highlight)
+    ctx.fillStyle = '#4ade80';
+    ctx.font = 'bold 22px system-ui, -apple-system, monospace';
+    ctx.fillText(`ID: ${member.userId}    |    ${member.role || 'Leader'}`, canvasWidth / 2, 578);
+
+    // Team Line (Light Lavender)
+    ctx.fillStyle = '#a395f3';
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    ctx.fillText(`Team: ${team.teamName} (${team.id})`, canvasWidth / 2, 618);
+
+    // College Line
+    if (team.college && team.college !== 'N/A') {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.font = '15px system-ui, -apple-system, sans-serif';
+      ctx.fillText(team.college, canvasWidth / 2, 654);
+    }
+
+    return canvas.toDataURL('image/png');
+  };
+
   const handleDownloadMemberQR = async (member, team) => {
     try {
-      const qrToken = member.qrToken || `QR-${member.userId}-${team.id}`;
-      let dataUrl = member.qrCodeUrl;
-      if (!dataUrl) {
-        dataUrl = await QRCode.toDataURL(qrToken, { width: 500, margin: 2 });
-      }
+      const dataUrl = await generateBadgeCanvas(member, team);
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `QR_${member.userId}_${member.name.replace(/\s+/g, '_')}_${team.teamName.replace(/\s+/g, '_')}.png`;
+      a.download = `QR_Pass_${member.userId}_${member.name.replace(/\s+/g, '_')}.png`;
       a.click();
     } catch (err) {
-      alert('Failed to download QR code: ' + err.message);
+      alert('Failed to download QR code pass: ' + err.message);
     }
   };
 
@@ -323,32 +416,101 @@ const Manager = () => {
       return;
     }
 
-    setBatchStatusMessage(`Preparing to download ${matches.length} student QR codes...`);
+    setBatchStatusMessage(`Preparing to download ${matches.length} student QR passes...`);
 
     for (let i = 0; i < matches.length; i++) {
       const { member, team } = matches[i];
       setBatchStatusMessage(`Downloading ${i + 1} of ${matches.length}: ${member.name} (${member.userId})...`);
       
-      const qrToken = member.qrToken || `QR-${member.userId}-${team.id}`;
-      let dataUrl = member.qrCodeUrl;
-      if (!dataUrl) {
-        try {
-          dataUrl = await QRCode.toDataURL(qrToken, { width: 500, margin: 2 });
-        } catch (err) {}
-      }
-
-      if (dataUrl) {
+      try {
+        const dataUrl = await generateBadgeCanvas(member, team);
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = `QR_${member.userId}_${member.name.replace(/\s+/g, '_')}_${team.teamName.replace(/\s+/g, '_')}.png`;
+        a.download = `QR_Pass_${member.userId}_${member.name.replace(/\s+/g, '_')}.png`;
         a.click();
+      } catch (err) {
+        console.error(`Batch QR error for ${member.userId}:`, err);
       }
 
-      // Small delay between downloads so the browser handles batch downloads gracefully
-      await new Promise(res => setTimeout(res, 250));
+      // Delay between downloads for browser stability
+      await new Promise(res => setTimeout(res, 300));
     }
 
-    setBatchStatusMessage(`✅ Successfully downloaded ${matches.length} QR code images for User ID range ${start} to ${end}!`);
+    setBatchStatusMessage(`✅ Successfully downloaded ${matches.length} QR code pass images for User ID range ${start} to ${end}!`);
+  };
+
+  const handleSendTeamRegistrationEmail = (team) => {
+    const recipient = team.leaderEmail || '';
+    const subject = `Official Registration Confirmation & Student Access Pass - Vel Tech Multi Tech Engineering College`;
+    
+    let membersBreakdown = '';
+    (team.members || []).forEach((m, idx) => {
+      membersBreakdown += `Member ${idx + 1}: ${m.name} (${m.role})\n`;
+      membersBreakdown += `User ID  : ${m.userId}\n`;
+      membersBreakdown += `Password : ${m.password}\n\n`;
+    });
+
+    const body = `Dear ${team.leaderName || 'Participant'},
+
+Greetings from Vel Tech Multi Tech Engineering College!
+
+We are pleased to confirm your team's registration for ${team.eventTitle}. Below are your official registration details and student portal credentials:
+
+--------------------------------------------------
+REGISTRATION & LOGIN DETAILS
+--------------------------------------------------
+Team Name      : ${team.teamName}
+Event Name     : ${team.eventTitle}
+College        : ${team.college || 'Vel Tech Multi Tech Engineering College'}
+Leader Contact : ${team.leaderName} (${team.leaderPhone || 'N/A'})
+
+STUDENT PORTAL ACCESS CREDENTIALS:
+${membersBreakdown}--------------------------------------------------
+
+📌 MANDATORY INSTRUCTION & NOTE:
+Each student must log in to the Student Portal (or /scan page) using their individual User ID and Password listed above.
+Your digital QR Code pass inside the portal is mandatory for:
+1. Event Gate & Team Attendance Verification
+2. Lunch Counter Access
+3. Evening Refreshments & Snacks
+
+Please keep your credentials confidential and present your digital QR Code at all scan counters during the event.
+
+We wish you and your team all the best!
+
+Warm Regards,
+Event Coordination Committee
+Vel Tech Multi Tech Engineering College`;
+
+    const fullMailText = `SUBJECT: ${subject}\n\nRECIPIENT: ${recipient}\n\n${body}`;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(fullMailText).then(() => {
+        alert(`📋 Email template for "${team.teamName}" copied to your clipboard!\n\nYou can now open your email app and paste it directly.`);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(fullMailText, team.teamName);
+      });
+    } else {
+      fallbackCopyTextToClipboard(fullMailText, team.teamName);
+    }
+  };
+
+  const fallbackCopyTextToClipboard = (text, teamName) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert(`📋 Email template for "${teamName}" copied to your clipboard!\n\nYou can now open your email app and paste it directly.`);
+    } catch (err) {
+      prompt(`Copy this email text manually for ${teamName}:`, text);
+    }
+    document.body.removeChild(textArea);
   };
 
   const handleOpenEditMembersModal = (team) => {
@@ -464,11 +626,18 @@ const Manager = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <input
+              type="text"
+              className="glass-input"
+              placeholder="Username / Account ID"
+              value={usernameInput}
+              onChange={e => setUsernameInput(e.target.value)}
+            />
             <input
               type="password"
               className="glass-input"
-              placeholder="Manager Password (Default: manager123)"
+              placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -770,13 +939,23 @@ const Manager = () => {
                           </div>
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleOpenEditMembersModal(t)}
-                            className="btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '0.8rem', gap: 6 }}
-                          >
-                            <Edit size={14} /> Edit Members
-                          </button>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => handleSendTeamRegistrationEmail(t)}
+                              className="btn-primary"
+                              title="Send Registration Confirmation Email to Team"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', gap: 6, background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.5)', color: '#60a5fa' }}
+                            >
+                              <Mail size={14} /> Send Mail
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditMembersModal(t)}
+                              className="btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', gap: 6 }}
+                            >
+                              <Edit size={14} /> Edit
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
@@ -794,13 +973,22 @@ const Manager = () => {
                                   College: <strong style={{ color: '#fff' }}>{t.college || 'N/A'}</strong> &nbsp;|&nbsp; Dept: <strong style={{ color: '#fff' }}>{t.department || 'N/A'}</strong>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => handleOpenEditMembersModal(t)}
-                                className="btn-primary"
-                                style={{ padding: '6px 14px', fontSize: '0.8rem', gap: 6 }}
-                              >
-                                <Edit size={14} /> Modify Team Members
-                              </button>
+                              <div style={{ display: 'flex', gap: 10 }}>
+                                <button
+                                  onClick={() => handleSendTeamRegistrationEmail(t)}
+                                  className="btn-primary"
+                                  style={{ padding: '6px 14px', fontSize: '0.8rem', gap: 6, background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.5)', color: '#60a5fa' }}
+                                >
+                                  <Mail size={14} /> Send Credentials Mail
+                                </button>
+                                <button
+                                  onClick={() => handleOpenEditMembersModal(t)}
+                                  className="btn-primary"
+                                  style={{ padding: '6px 14px', fontSize: '0.8rem', gap: 6 }}
+                                >
+                                  <Edit size={14} /> Modify Team Members
+                                </button>
+                              </div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>

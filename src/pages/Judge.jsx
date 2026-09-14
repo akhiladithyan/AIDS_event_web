@@ -16,12 +16,11 @@ const Judge = () => {
   const [scores, setScores] = useState({});
   const [judgingLocks, setJudgingLocks] = useState({});
 
+  const [allJudgesList, setAllJudgesList] = useState([]);
+
   // Active scoring form for selected team
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [innovationScore, setInnovationScore] = useState(0);
-  const [executionScore, setExecutionScore] = useState(0);
-  const [presentationScore, setPresentationScore] = useState(0);
-  const [qaScore, setQaScore] = useState(0);
+  const [criteriaScores, setCriteriaScores] = useState({});
   const [feedbackText, setFeedbackText] = useState('');
 
   // Manager Lock Verification Modal
@@ -30,13 +29,8 @@ const Judge = () => {
   const [lockError, setLockError] = useState('');
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('neura_judge_session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        handleLoginJudge(parsed.username, parsed.password);
-      } catch (e) {}
-    }
+    // Mandatory password lock: Require username & password entry on every page visit
+    setCurrentJudge(null);
   }, []);
 
   const handleLoginJudge = async (uName, uPass) => {
@@ -46,18 +40,29 @@ const Judge = () => {
       setCurrentJudge(found);
       setLoginError('');
       sessionStorage.setItem('neura_judge_session', JSON.stringify({ username: found.username, password: found.password }));
-      await loadJudgeData();
+      await loadJudgeData(found);
     } else {
-      setLoginError('Invalid Judge Username or Password. Try username: judge1 / password: j1');
+      setLoginError('Invalid Judge Username or Password.');
     }
   };
 
-  const loadJudgeData = async () => {
-    const evts = await storeService.getEvents();
-    setEvents(evts);
-    if (evts.length > 0 && !selectedEventId) {
-      setSelectedEventId(evts[0].id);
+  const loadJudgeData = async (judgeInstance = currentJudge) => {
+    const [allEvts, jdgs] = await Promise.all([
+      storeService.getEvents(),
+      storeService.getJudges()
+    ]);
+    setAllJudgesList(jdgs);
+
+    let permittedEvts = allEvts;
+    if (judgeInstance && judgeInstance.assignedEvents && judgeInstance.assignedEvents.length > 0) {
+      permittedEvts = allEvts.filter(e => judgeInstance.assignedEvents.includes(e.id));
     }
+    setEvents(permittedEvts);
+
+    if (permittedEvts.length > 0) {
+      setSelectedEventId(prev => (permittedEvts.some(e => e.id === prev) ? prev : permittedEvts[0].id));
+    }
+
     const [tms, att, scs, lcks] = await Promise.all([
       storeService.getTeams(),
       storeService.getAttendance(),
@@ -70,24 +75,34 @@ const Judge = () => {
     setJudgingLocks(lcks);
   };
 
+  const selectedEventObj = events.find(e => e.id === selectedEventId);
+  const activeCriteria = selectedEventObj?.criteria || [
+    { id: 'crit-1', label: 'Innovation & Originality', maxPoints: 10 },
+    { id: 'crit-2', label: 'Technical Execution', maxPoints: 10 },
+    { id: 'crit-3', label: 'Presentation & Demo', maxPoints: 10 },
+    { id: 'crit-4', label: 'Q&A Response', maxPoints: 10 }
+  ];
+
   const handleSelectTeamForScoring = (team) => {
     setSelectedTeam(team);
-    // Check if score exists
     const key = `${selectedEventId}_${team.id}_${currentJudge.id}`;
     const existing = scores[key];
-    if (existing) {
-      setInnovationScore(existing.criteria.innovation || 0);
-      setExecutionScore(existing.criteria.execution || 0);
-      setPresentationScore(existing.criteria.presentation || 0);
-      setQaScore(existing.criteria.qa || 0);
-      setFeedbackText(existing.feedback || '');
-    } else {
-      setInnovationScore(10);
-      setExecutionScore(10);
-      setPresentationScore(10);
-      setQaScore(10);
-      setFeedbackText('');
-    }
+
+    const initialScores = {};
+    activeCriteria.forEach(c => {
+      if (existing && existing.criteria && existing.criteria[c.id] !== undefined) {
+        initialScores[c.id] = Number(existing.criteria[c.id]);
+      } else if (existing && existing.criteria) {
+        // Fallback for old criterion keys
+        const legacyVal = Object.values(existing.criteria)[0] || 10;
+        initialScores[c.id] = Number(legacyVal);
+      } else {
+        initialScores[c.id] = Math.min(10, Number(c.maxPoints || 10));
+      }
+    });
+
+    setCriteriaScores(initialScores);
+    setFeedbackText(existing?.feedback || '');
   };
 
   const handleSaveScoresSubmit = async (e) => {
@@ -98,17 +113,25 @@ const Judge = () => {
       eventId: selectedEventId,
       teamId: selectedTeam.id,
       judgeId: currentJudge.id,
-      criteria: {
-        innovation: Number(innovationScore),
-        execution: Number(executionScore),
-        presentation: Number(presentationScore),
-        qa: Number(qaScore)
-      },
+      criteria: criteriaScores,
       feedback: feedbackText
     });
 
     await loadJudgeData();
     setSelectedTeam(null);
+  };
+
+  const handleLockMyJudging = async () => {
+    if (!currentJudge || !selectedEventId) return;
+    if (confirm(`Are you sure you want to finalize & lock your judging for "${selectedEventObj?.title}"?\n\nOnce locked, your scores will be frozen for result calculation.`)) {
+      try {
+        await storeService.lockJudgeForEvent(selectedEventId, currentJudge.id);
+        await loadJudgeData();
+        confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } });
+      } catch (err) {
+        alert(err.message || "Failed to lock judging.");
+      }
+    }
   };
 
   const handleFinalizeEventJudging = async (e) => {
@@ -141,17 +164,22 @@ const Judge = () => {
     return hasTeamPresent || hasAnyMemberPresent;
   });
 
-  // Compute Leaderboard Ranking
+  // Compute Leaderboard Ranking: Total cumulative points across all evaluating judges
   const leaderboard = presentTeamsForSelectedEvent.map(t => {
-    // Total aggregate score across all judges
     const teamScoreKeys = Object.keys(scores).filter(k => k.startsWith(`${selectedEventId}_${t.id}_`));
     const totalScore = teamScoreKeys.reduce((sum, key) => sum + (scores[key]?.totalScore || 0), 0);
     const judgeCount = teamScoreKeys.length;
     const avgScore = judgeCount > 0 ? (totalScore / judgeCount).toFixed(1) : 0;
     return { ...t, totalScore, avgScore, judgeCount };
-  }).sort((a, b) => b.avgScore - a.avgScore);
+  }).sort((a, b) => b.totalScore - a.totalScore);
 
-  const currentEventLock = judgingLocks[selectedEventId]?.isCompleted || false;
+  const lockState = judgingLocks[selectedEventId] || {};
+  const currentEventLock = lockState.isCompleted || false;
+  const judgeLocksMap = lockState.judgeLocks || {};
+  const currentJudgeHasLocked = currentJudge ? Boolean(judgeLocksMap[currentJudge.id] || judgeLocksMap[currentJudge.username]) : false;
+
+  const assignedJudgesForSelectedEvent = allJudgesList.filter(j => (j.assignedEvents || []).includes(selectedEventId));
+  const lockedAssignedCount = assignedJudgesForSelectedEvent.filter(j => Boolean(judgeLocksMap[j.id] || judgeLocksMap[j.username])).length;
 
   return (
     <div style={{ maxWidth: 1180, margin: '40px auto', padding: '0 20px' }}>
@@ -195,7 +223,7 @@ const Judge = () => {
             <input
               type="text"
               className="glass-input"
-              placeholder="Username (e.g. judge1)"
+              placeholder="Username"
               value={judgeUser}
               onChange={e => setJudgeUser(e.target.value)}
               required
@@ -203,7 +231,7 @@ const Judge = () => {
             <input
               type="password"
               className="glass-input"
-              placeholder="Password (e.g. j1)"
+              placeholder="Password"
               value={judgePass}
               onChange={e => setJudgePass(e.target.value)}
               required
@@ -226,7 +254,7 @@ const Judge = () => {
             </div>
 
             {/* Event Selector & Finalize Lock Button */}
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <select
                 className="glass-input"
                 style={{ width: 240 }}
@@ -242,21 +270,53 @@ const Judge = () => {
                 ))}
               </select>
 
-              {!currentEventLock ? (
+              {!currentEventLock && !currentJudgeHasLocked ? (
                 <button
-                  onClick={() => setShowLockModal(true)}
+                  onClick={handleLockMyJudging}
                   className="btn-primary"
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{ whiteSpace: 'nowrap', background: '#d97706', border: 'none' }}
                 >
-                  <Lock size={16} /> Complete & Lock Judging
+                  <Lock size={16} /> Lock My Judging ({currentJudge?.name || 'Judge'})
                 </button>
+              ) : currentJudgeHasLocked ? (
+                <span className="badge-green" style={{ padding: '8px 14px', fontSize: '0.86rem' }}>
+                  <CheckCircle size={15} /> Your Judging is Locked ({currentJudge?.name})
+                </span>
               ) : (
-                <span className="badge-green" style={{ padding: '10px 18px', fontSize: '0.88rem' }}>
-                  <CheckCircle size={16} /> Judging Locked by Manager
+                <span className="badge-green" style={{ padding: '8px 14px', fontSize: '0.86rem' }}>
+                  <CheckCircle size={15} /> All Judges Completed & Locked
                 </span>
               )}
             </div>
           </div>
+
+          {/* ASSIGNED JUDGES LOCK STATUS BANNER */}
+          {assignedJudgesForSelectedEvent.length > 0 && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: 14,
+              padding: '10px 18px',
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.86rem'
+            }}>
+              <div>
+                <strong>Assigned Judges Lock Progress ({lockedAssignedCount} / {assignedJudgesForSelectedEvent.length} Locked):</strong>
+                <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>
+                  {assignedJudgesForSelectedEvent.map(j => {
+                    const isJLocked = Boolean(judgeLocksMap[j.id] || judgeLocksMap[j.username]);
+                    return `${j.name} (${isJLocked ? '✓ Locked' : '⏳ Pending'})`;
+                  }).join(', ')}
+                </span>
+              </div>
+              {currentEventLock && (
+                <span style={{ color: '#22c55e', fontWeight: 700 }}>✓ Event Ready for Results</span>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
             {/* LEFT COLUMN: PRESENT TEAMS LIST */}
@@ -278,15 +338,16 @@ const Judge = () => {
                     const scoreKey = `${selectedEventId}_${t.id}_${currentJudge.id}`;
                     const hasScored = Boolean(scores[scoreKey]);
                     const currentScore = scores[scoreKey]?.totalScore || 0;
+                    const maxTotalScore = activeCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
 
                     return (
                       <div
                         key={t.id}
-                        onClick={() => !currentEventLock && handleSelectTeamForScoring(t)}
+                        onClick={() => !currentEventLock && !currentJudgeHasLocked && handleSelectTeamForScoring(t)}
                         className="glass-card"
                         style={{
                           padding: 18,
-                          cursor: currentEventLock ? 'default' : 'pointer',
+                          cursor: (currentEventLock || currentJudgeHasLocked) ? 'default' : 'pointer',
                           borderColor: selectedTeam?.id === t.id ? '#ef4a40' : 'rgba(255,255,255,0.1)',
                           background: selectedTeam?.id === t.id ? 'rgba(239, 74, 64, 0.15)' : 'rgba(255,255,255,0.04)',
                           display: 'flex',
@@ -305,7 +366,7 @@ const Judge = () => {
                             <div style={{ textAlign: 'right' }}>
                               <span className="badge-purple">Scored</span>
                               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#4ade80', marginTop: 4 }}>
-                                {currentScore} / 40 pts
+                                {currentScore} / {maxTotalScore} pts
                               </div>
                             </div>
                           ) : (
@@ -323,129 +384,71 @@ const Judge = () => {
 
             {/* RIGHT COLUMN: SCORING FORM OR LEADERBOARD */}
             <div>
-              {selectedTeam && !currentEventLock ? (
+              {selectedTeam && !currentEventLock && !currentJudgeHasLocked ? (
                 /* SCORING FORM */
                 (() => {
                   const scoreKey = `${selectedEventId}_${selectedTeam.id}_${currentJudge.id}`;
-                  const isScoreFixed = Boolean(scores[scoreKey]);
+                  const hasExistingScore = Boolean(scores[scoreKey]);
+                  const totalFormScore = Object.values(criteriaScores).reduce((sum, v) => sum + Number(v || 0), 0);
+                  const totalMaxPoints = activeCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
+
                   return (
                     <div className="glass-panel" style={{ padding: 28 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4a40', margin: 0 }}>
                           Evaluate: {selectedTeam.teamName}
                         </h3>
-                        {isScoreFixed && (
+                        {hasExistingScore && (
                           <span className="badge-purple" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Lock size={13} /> Score Fixed
+                            <Edit size={13} /> Editable Score
                           </span>
                         )}
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
-                        {isScoreFixed
-                          ? 'This team score has been submitted and fixed. Modifications are disabled.'
-                          : 'Enter scores for each criterion out of 10 points.'}
+                        {hasExistingScore
+                          ? 'You can update and refine this score until final lock.'
+                          : 'Enter scores for each event criteria metric below.'}
                       </p>
 
                       <form onSubmit={handleSaveScoresSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                            <span>Innovation & Originality</span>
-                            <strong>{innovationScore} / 10 pts</strong>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            disabled={isScoreFixed}
-                            value={innovationScore}
-                            onChange={e => setInnovationScore(e.target.value)}
-                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
-                          />
-                        </div>
-
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                            <span>Technical Execution & Feasibility</span>
-                            <strong>{executionScore} / 10 pts</strong>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            disabled={isScoreFixed}
-                            value={executionScore}
-                            onChange={e => setExecutionScore(e.target.value)}
-                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
-                          />
-                        </div>
-
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                            <span>Presentation & UI/UX Clarity</span>
-                            <strong>{presentationScore} / 10 pts</strong>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            disabled={isScoreFixed}
-                            value={presentationScore}
-                            onChange={e => setPresentationScore(e.target.value)}
-                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
-                          />
-                        </div>
-
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
-                            <span>Q&A & Defense</span>
-                            <strong>{qaScore} / 10 pts</strong>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            disabled={isScoreFixed}
-                            value={qaScore}
-                            onChange={e => setQaScore(e.target.value)}
-                            style={{ width: '100%', accentColor: '#ef4a40', opacity: isScoreFixed ? 0.6 : 1 }}
-                          />
-                        </div>
+                        {activeCriteria.map((crit, idx) => {
+                          const val = criteriaScores[crit.id] !== undefined ? criteriaScores[crit.id] : Math.min(10, crit.maxPoints);
+                          return (
+                            <div key={crit.id || idx}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.88rem' }}>
+                                <span style={{ fontWeight: 700 }}>{idx + 1}. {crit.label}</span>
+                                <strong style={{ color: '#22c55e' }}>{val} / {crit.maxPoints} pts</strong>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max={crit.maxPoints}
+                                value={val}
+                                onChange={e => {
+                                  setCriteriaScores({ ...criteriaScores, [crit.id]: Number(e.target.value) });
+                                }}
+                                style={{ width: '100%', accentColor: '#22c55e' }}
+                              />
+                            </div>
+                          );
+                        })}
 
                         <div>
                           <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>Judge Feedback / Remarks</label>
                           <textarea
                             className="glass-input"
                             rows={3}
-                            disabled={isScoreFixed}
                             placeholder="Constructive feedback for team..."
                             value={feedbackText}
                             onChange={e => setFeedbackText(e.target.value)}
-                            style={{ opacity: isScoreFixed ? 0.6 : 1 }}
                           />
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 10 }}>
                           <button type="button" onClick={() => setSelectedTeam(null)} className="btn-secondary">Close</button>
-                          {!isScoreFixed ? (
-                            <button type="submit" className="btn-primary">
-                              <Save size={16} /> Submit & Fix Score ({Number(innovationScore) + Number(executionScore) + Number(presentationScore) + Number(qaScore)} pts)
-                            </button>
-                          ) : (
-                            <div style={{
-                              background: 'rgba(34, 197, 94, 0.2)',
-                              border: '1px solid rgba(34, 197, 94, 0.5)',
-                              color: '#4ade80',
-                              padding: '10px 16px',
-                              borderRadius: 12,
-                              fontWeight: 700,
-                              fontSize: '0.88rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6
-                            }}>
-                              <Lock size={15} /> Score Fixed & Locked
-                            </div>
-                          )}
+                          <button type="submit" className="btn-primary">
+                            <Save size={16} /> {hasExistingScore ? 'Update Score' : 'Save Score'} ({totalFormScore} / {totalMaxPoints} pts)
+                          </button>
                         </div>
                       </form>
                     </div>
@@ -462,7 +465,7 @@ const Judge = () => {
                     {currentEventLock ? 'Final Verified Results' : 'Live Average Scores across judges (Hidden from public)'}
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
                     {leaderboard.map((item, rank) => (
                       <div
                         key={item.id}
@@ -497,16 +500,92 @@ const Judge = () => {
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: rank === 0 ? '#ef4a40' : '#4ade80' }}>
-                            {item.avgScore} pts
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {item.judgeCount} Judge score(s)
-                          </div>
+                          {(() => {
+                            const singleJudgeMax = activeCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
+                            const assignedCount = assignedJudgesForSelectedEvent.length;
+                            const judgeMultiplier = Math.max(1, assignedCount, item.judgeCount || 0);
+                            const totalEventMaxScore = singleJudgeMax * judgeMultiplier;
+
+                            return (
+                              <>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: rank === 0 ? '#ef4a40' : '#4ade80' }}>
+                                  {item.totalScore} / {totalEventMaxScore} pts
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  {item.judgeCount} of {judgeMultiplier} Judge score(s)
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* PUBLIC RESULTS REVEAL CONTROL PANEL */}
+                  {currentEventLock && (
+                    <div style={{
+                      background: 'rgba(102, 84, 181, 0.15)',
+                      border: '1px solid rgba(131, 114, 216, 0.4)',
+                      borderRadius: 16,
+                      padding: 20,
+                      marginTop: 20
+                    }}>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Sparkles size={18} color="#a395f3" /> Public Results Reveal Controls
+                      </h4>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+                        Click a button to broadcast & reveal that place on the public Results page live with a 3-second countdown!
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                        {[3, 2, 1].map(place => {
+                          const isRevealed = judgingLocks[selectedEventId]?.revealedPlaces?.[place];
+                          const label = place === 1 ? '1st Place' : place === 2 ? '2nd Place' : '3rd Place';
+                          const color = place === 1 ? '#eab308' : place === 2 ? '#cbd5e1' : '#d97706';
+
+                          return (
+                            <button
+                              key={place}
+                              onClick={async () => {
+                                try {
+                                  await storeService.setRevealedPlace(selectedEventId, place, !isRevealed);
+                                  await loadJudgeData();
+                                  if (!isRevealed) {
+                                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+                                  }
+                                } catch (e) {
+                                  alert('Failed to update reveal status: ' + e.message);
+                                }
+                              }}
+                              className={isRevealed ? 'btn-secondary' : 'btn-primary'}
+                              style={{
+                                padding: '12px 14px',
+                                fontSize: '0.88rem',
+                                borderColor: isRevealed ? 'rgba(74, 222, 128, 0.4)' : color,
+                                background: isRevealed ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                                color: isRevealed ? '#4ade80' : '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6
+                              }}
+                            >
+                              {isRevealed ? (
+                                <>
+                                  <CheckCircle size={16} color="#4ade80" /> {label} Revealed
+                                </>
+                              ) : (
+                                <>
+                                  <Trophy size={16} color={color} /> Reveal {label}
+                                </>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

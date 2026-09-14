@@ -414,7 +414,8 @@ const MagicBento = ({
   children,
   enableSpotlight = true,
   glowColor = GREEN_GLOW_COLOR,
-  spotlightRadius = DEFAULT_SPOTLIGHT_RADIUS
+  spotlightRadius = DEFAULT_SPOTLIGHT_RADIUS,
+  gridTemplateColumns
 }) => {
   const gridRef = useRef(null);
 
@@ -432,8 +433,8 @@ const MagicBento = ({
         ref={gridRef}
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: 28
+          gridTemplateColumns: gridTemplateColumns || 'repeat(auto-fill, minmax(340px, 1fr))',
+          gap: 24
         }}
       >
         {children}

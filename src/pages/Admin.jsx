@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import { isSupabaseConfigured } from '../services/supabase';
 import PillButton from '../components/PillButton';
-import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Key, CheckCircle, Lock, Save, RefreshCw, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Lock, ChevronDown, ChevronUp, Users } from 'lucide-react';
 
 const Admin = () => {
+  const [usernameInput, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passError, setPassError] = useState('');
   
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [passwords, setPasswords] = useState({});
   const [activeTab, setActiveTab] = useState('events');
   const [expandedTeamId, setExpandedTeamId] = useState(null);
 
@@ -30,40 +30,29 @@ const Admin = () => {
   const [rulesStr, setRulesStr] = useState('');
   const [image, setImage] = useState('');
 
-  // Passwords Form State
-  const [newAdminPass, setNewAdminPass] = useState('');
-  const [newManagerPass, setNewManagerPass] = useState('');
-
   useEffect(() => {
-    const savedAuth = sessionStorage.getItem('neura_admin_auth');
-    if (savedAuth === 'true') {
-      setIsAuthenticated(true);
-      loadAdminData();
-    }
+    // Mandatory password lock: Require password entry on every page visit
+    setIsAuthenticated(false);
   }, []);
 
   const loadAdminData = async () => {
     const evts = await storeService.getEvents();
     const tms = await storeService.getTeams();
-    const pass = await storeService.getPasswords();
     setEvents(evts);
     setTeams(tms);
-    setPasswords(pass);
-    setNewAdminPass(pass.admin);
-    setNewManagerPass(pass.manager);
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const isValid = await storeService.verifyAdminPassword(password);
-      if (isValid) {
+      const res = await storeService.verifyUserAccess({ username: usernameInput, password, requiredLevel: 'admin' });
+      if (res.success) {
         setIsAuthenticated(true);
         sessionStorage.setItem('neura_admin_auth', 'true');
         setPassError('');
         await loadAdminData();
       } else {
-        setPassError('Incorrect Admin Password! (Verification failed via Supabase service)');
+        setPassError(res.error || 'Access Denied! Admin permissions required.');
       }
     } catch (err) {
       setPassError(err.message || 'Authentication error');
@@ -147,16 +136,6 @@ const Admin = () => {
     }
   };
 
-  const handleSavePasswords = async (e) => {
-    e.preventDefault();
-    await storeService.updatePasswords({
-      admin: newAdminPass,
-      manager: newManagerPass
-    });
-    alert('System passwords updated successfully!');
-    await loadAdminData();
-  };
-
   const handleDownloadJSON = async () => {
     const jsonStr = await storeService.exportFullBackup();
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -168,11 +147,11 @@ const Admin = () => {
   };
 
   const handleDownloadCSV = () => {
-    let csv = 'Event Title,Team No,Team ID,Team Name,College,Department,Participant Name,Role,User ID,Password,Phone,Email,QR Token,Registration Date\n';
+    let csv = 'Event Title,Team No,Team ID,Team Name,College,Department,Participant Name,Role,User ID,Phone,Email,Registration Date\n';
     teams.forEach(t => {
       const regDate = t.createdAt ? new Date(t.createdAt).toLocaleString() : 'N/A';
       (t.members || []).forEach(m => {
-        csv += `"${t.eventTitle}","${t.teamNo || 1}","${t.id}","${t.teamName}","${t.college || 'N/A'}","${t.department || 'N/A'}","${m.name}","${m.role}","${m.userId}","${m.password}","${t.leaderPhone || ''}","${t.leaderEmail || ''}","${m.qrToken || ''}","${regDate}"\n`;
+        csv += `"${t.eventTitle}","${t.teamNo || 1}","${t.id}","${t.teamName}","${t.college || 'N/A'}","${t.department || 'N/A'}","${m.name}","${m.role}","${m.userId}","${t.leaderPhone || ''}","${t.leaderEmail || ''}","${regDate}"\n`;
       });
     });
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -204,7 +183,7 @@ const Admin = () => {
 
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Admin Authentication</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4, marginBottom: 24 }}>
-            Enter the admin security password to alter events and database records.
+            Enter the admin security password to alter events and view records.
           </p>
 
           {passError && (
@@ -221,11 +200,18 @@ const Admin = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <input
+              type="text"
+              className="glass-input"
+              placeholder="Username / Account ID"
+              value={usernameInput}
+              onChange={e => setUsernameInput(e.target.value)}
+            />
             <input
               type="password"
               className="glass-input"
-              placeholder="Admin Password (Default: admin123)"
+              placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -244,7 +230,7 @@ const Admin = () => {
               <span className="badge-coral" style={{ marginBottom: 6, display: 'inline-block' }}>
                 System Administration
               </span>
-              <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Event & Database Manager</h2>
+              <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Event & Roster Manager</h2>
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
@@ -284,13 +270,6 @@ const Admin = () => {
               >
                 Registered Teams ({teams.length})
               </PillButton>
-              <PillButton
-                onClick={() => setActiveTab('passwords')}
-                variant={activeTab === 'passwords' ? 'active' : 'secondary'}
-                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-              >
-                Passwords
-              </PillButton>
             </div>
           </div>
 
@@ -315,56 +294,51 @@ const Admin = () => {
                     setShowEventModal(true);
                   }}
                   variant="primary"
-                  style={{ padding: '10px 18px', fontSize: '0.88rem' }}
                 >
                   <Plus size={16} /> Add New Event
                 </PillButton>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-                {events.map(evt => {
-                  const registeredCount = teams.filter(t => t.eventId === evt.id).length;
-                  const limit = evt.maxTeams || 20;
-
-                  return (
-                    <div key={evt.id} className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <span className="badge-purple">{evt.category}</span>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            onClick={() => handleEditClick(evt)}
-                            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: 6, cursor: 'pointer' }}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(evt.id)}
-                            style={{ background: 'rgba(239, 74, 64, 0.25)', border: 'none', color: '#ff8a82', borderRadius: 8, padding: 6, cursor: 'pointer' }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                {events.map(evt => (
+                  <div key={evt.id} className="glass-panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                          <span className={evt.category === 'Technical' ? 'badge-purple' : 'badge-pink'} style={{ fontSize: '0.75rem', marginBottom: 6, display: 'inline-block' }}>
+                            {evt.category}
+                          </span>
+                          <h4 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{evt.title}</h4>
                         </div>
+                        <span style={{ fontSize: '0.8rem', color: '#4ade80', fontWeight: 600, background: 'rgba(74, 222, 128, 0.1)', padding: '4px 8px', borderRadius: 8 }}>
+                          {evt.teamSize}
+                        </span>
                       </div>
-
-                      <h4 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{evt.title}</h4>
-                      <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16, lineClamp: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {evt.description}
                       </p>
-
-                      <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div>Max Team Capacity: <strong style={{ color: '#4ade80' }}>{limit} Teams</strong> ({registeredCount} Registered)</div>
-                        <div>Venue: <strong>{evt.venue}</strong></div>
-                        <div>Time: <strong>{evt.time}</strong></div>
-                        <div>Prize: <strong style={{ color: '#ef4a40' }}>{evt.prize}</strong></div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-subtle)', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+                        <div><strong>Venue:</strong> {evt.venue}</div>
+                        <div><strong>Timing:</strong> {evt.time}</div>
+                        <div><strong>Prize:</strong> <span style={{ color: '#fbbf24', fontWeight: 600 }}>{evt.prize}</span></div>
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div style={{ display: 'flex', gap: 10, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
+                      <PillButton onClick={() => handleEditClick(evt)} variant="secondary" style={{ flex: 1, padding: '8px', fontSize: '0.82rem' }}>
+                        <Edit size={14} /> Edit
+                      </PillButton>
+                      <PillButton onClick={() => handleDeleteClick(evt.id)} variant="danger" style={{ flex: 1, padding: '8px', fontSize: '0.82rem' }}>
+                        <Trash2 size={14} /> Delete
+                      </PillButton>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* TAB 2: REGISTERED TEAMS */}
+          {/* TAB 2: REGISTERED TEAMS (VIEW ONLY) */}
           {activeTab === 'teams' && (
             <div className="glass-panel" style={{ padding: 24, overflowX: 'auto' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 16 }}>All Registered Teams</h3>
@@ -376,7 +350,6 @@ const Admin = () => {
                     <th style={{ padding: '12px 16px' }}>Event</th>
                     <th style={{ padding: '12px 16px' }}>Leader</th>
                     <th style={{ padding: '12px 16px' }}>Members</th>
-                    <th style={{ padding: '12px 16px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -408,29 +381,15 @@ const Admin = () => {
                               {t.members.length} Members
                             </span>
                           </td>
-                          <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                            <PillButton
-                              onClick={async () => {
-                                if (confirm(`Remove team ${t.teamName}?`)) {
-                                  await storeService.deleteTeam(t.id);
-                                  await loadAdminData();
-                                }
-                              }}
-                              variant="danger"
-                              style={{ padding: '6px 14px', fontSize: '0.8rem' }}
-                            >
-                              Remove
-                            </PillButton>
-                          </td>
                         </tr>
 
                         {/* SLIDE DOWN PERSON DETAILS BREAKDOWN */}
                         {isExpanded && (
                           <tr>
-                            <td colSpan={6} style={{ padding: '16px 20px', background: 'rgba(12, 8, 24, 0.7)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
+                            <td colSpan={5} style={{ padding: '16px 20px', background: 'rgba(12, 8, 24, 0.7)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
                               <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Users size={18} color="#4ade80" />
-                                <strong style={{ fontSize: '1rem', color: '#fff' }}>Detailed Person Roster ({t.teamName})</strong>
+                                <strong style={{ fontSize: '1rem', color: '#fff' }}>Registered Roster ({t.teamName})</strong>
                               </div>
                               
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -444,8 +403,6 @@ const Admin = () => {
                                     </div>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                                       <div>User ID: <code style={{ color: '#4ade80' }}>{m.userId}</code></div>
-                                      <div>Password: <code style={{ color: '#fbbf24' }}>{m.password}</code></div>
-                                      <div>QR Token: <span style={{ fontSize: '0.72rem', wordBreak: 'break-all', opacity: 0.8 }}>{m.qrToken}</span></div>
                                     </div>
                                   </div>
                                 ))}
@@ -458,42 +415,6 @@ const Admin = () => {
                   })}
                 </tbody>
               </table>
-            </div>
-          )}
-
-          {/* TAB 3: PASSWORDS CONFIG */}
-          {activeTab === 'passwords' && (
-            <div className="glass-panel" style={{ maxWidth: 500, padding: 32 }}>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 20 }}>System Passwords</h3>
-              <form onSubmit={handleSavePasswords} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                    /admin Access Password
-                  </label>
-                  <input
-                    type="text"
-                    className="glass-input"
-                    value={newAdminPass}
-                    onChange={e => setNewAdminPass(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                    /manager Access Password
-                  </label>
-                  <input
-                    type="text"
-                    className="glass-input"
-                    value={newManagerPass}
-                    onChange={e => setNewManagerPass(e.target.value)}
-                    required
-                  />
-                </div>
-                <PillButton type="submit" variant="primary" style={{ marginTop: 8 }}>
-                  <Save size={16} /> Save Passwords
-                </PillButton>
-              </form>
             </div>
           )}
 

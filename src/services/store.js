@@ -71,8 +71,7 @@ const INITIAL_EVENTS = [
 ];
 
 const INITIAL_JUDGES = [
-  { id: 'jd-1', username: 'judge1', password: 'j1', name: 'Dr. R. Vignesh (AI Expert)', assignedEvents: ['evt-1', 'evt-2', 'evt-3', 'evt-4'] },
-  { id: 'jd-2', username: 'judge2', password: 'j2', name: 'Prof. S. Anitha (Data Scientist)', assignedEvents: ['evt-1', 'evt-2', 'evt-3', 'evt-4'] }
+  { id: 'jd-1', username: 'Akhil', password: 'Ak1002hil', name: 'Akhil Adithyan (Super Admin)', assignedEvents: ['evt-1', 'evt-2', 'evt-3', 'evt-4'], accessLevels: ['admin', 'manager', 'judge', 'scan'] }
 ];
 
 const INITIAL_PASSWORDS = {
@@ -103,6 +102,13 @@ const INITIAL_TEAMS = [
   }
 ];
 
+export const DEFAULT_CRITERIA = [
+  { id: 'crit-1', label: 'Innovation & Originality', maxPoints: 10 },
+  { id: 'crit-2', label: 'Technical Execution', maxPoints: 10 },
+  { id: 'crit-3', label: 'Presentation & Demo', maxPoints: 10 },
+  { id: 'crit-4', label: 'Q&A Response', maxPoints: 10 }
+];
+
 // Mappers for DB Snake Case <-> JS Camel Case
 const mapEventFromDb = (row) => ({
   id: row.id,
@@ -116,6 +122,7 @@ const mapEventFromDb = (row) => ({
   description: row.description,
   rules: row.rules || [],
   image: row.image,
+  criteria: row.criteria && Array.isArray(row.criteria) && row.criteria.length > 0 ? row.criteria : DEFAULT_CRITERIA,
   createdAt: row.created_at
 });
 
@@ -130,7 +137,8 @@ const mapEventToDb = (evt) => ({
   prize: evt.prize,
   description: evt.description,
   rules: evt.rules || [],
-  image: evt.image
+  image: evt.image,
+  criteria: evt.criteria || DEFAULT_CRITERIA
 });
 
 const mapTeamFromDb = (row) => ({
@@ -171,7 +179,8 @@ const mapJudgeFromDb = (row) => ({
   username: row.username,
   password: row.password,
   name: row.name,
-  assignedEvents: row.assigned_events || []
+  assignedEvents: row.assigned_events || [],
+  accessLevels: row.access_levels || ['judge']
 });
 
 const mapJudgeToDb = (j) => ({
@@ -179,27 +188,63 @@ const mapJudgeToDb = (j) => ({
   username: j.username,
   password: j.password,
   name: j.name,
-  assigned_events: j.assignedEvents || []
+  assigned_events: j.assignedEvents || [],
+  access_levels: j.accessLevels || ['judge']
 });
 
 export const storeService = {
   // 1. EVENTS
+  getCustomEventCriteriaMap() {
+    try {
+      return JSON.parse(localStorage.getItem('custom_event_criteria') || '{}');
+    } catch (e) {
+      return {};
+    }
+  },
+
+  async updateEventCriteria(eventId, criteria) {
+    const customMap = this.getCustomEventCriteriaMap();
+    customMap[eventId] = criteria;
+    try {
+      localStorage.setItem('custom_event_criteria', JSON.stringify(customMap));
+    } catch (e) {}
+
+    const events = await this.getEvents();
+    const evt = events.find(e => e.id === eventId);
+    if (evt) {
+      const updatedEvt = { ...evt, criteria };
+      try {
+        await this.updateEvent(updatedEvt);
+      } catch (e) {
+        console.warn('Event criteria update DB fallback warning:', e);
+      }
+    }
+    return criteria;
+  },
+
   async getEvents() {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Supabase is not configured in .env');
     }
+    const customCriteriaMap = this.getCustomEventCriteriaMap();
     const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
     if (error) {
       console.error('Supabase fetch events error:', error);
       throw error;
     }
-    if (!data || data.length === 0) {
+    let list = INITIAL_EVENTS;
+    if (data && data.length > 0) {
+      list = data.map(mapEventFromDb);
+    } else {
       const insertRows = INITIAL_EVENTS.map(mapEventToDb);
       const { error: seedError } = await supabase.from('events').insert(insertRows);
       if (seedError) console.error('Error seeding initial events:', seedError);
-      return INITIAL_EVENTS;
     }
-    return data.map(mapEventFromDb);
+
+    return list.map(evt => ({
+      ...evt,
+      criteria: customCriteriaMap[evt.id] || evt.criteria || DEFAULT_CRITERIA
+    }));
   },
 
   async addEvent(event) {
@@ -244,28 +289,77 @@ export const storeService = {
   },
 
   // 2. PASSWORDS & SECURITY VERIFICATION
-  async verifyAdminPassword(inputPassword) {
-    if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase cloud service is not configured');
+  getEnvUsers() {
+    try {
+      const rawEnvUsers = import.meta.env.VITE_USERS_CONFIG;
+      if (rawEnvUsers) {
+        return JSON.parse(rawEnvUsers);
+      }
+    } catch (e) {
+      console.warn('Error parsing VITE_USERS_CONFIG from .env:', e);
     }
-    const { data, error } = await supabase.from('passwords').select('admin').eq('id', 'system').single();
-    if (error) {
-      console.error('Supabase admin verification error:', error);
-      throw new Error('Security verification failed. Please check network/Supabase connection.');
-    }
-    return data && data.admin === inputPassword;
+    return [];
   },
 
-  async verifyManagerPassword(inputPassword) {
-    if (!isSupabaseConfigured || !supabase) {
-      throw new Error('Supabase cloud service is not configured');
+  async verifyUserAccess({ username, password, requiredLevel }) {
+    const cleanUser = (username || '').trim();
+    const cleanPass = (password || '').trim();
+
+    // 1. First priority: Check VITE_USERS_CONFIG environment file credentials
+    const envUsers = this.getEnvUsers();
+    if (envUsers.length > 0) {
+      const matchedEnvUser = envUsers.find(u => 
+        (u.username.toLowerCase() === cleanUser.toLowerCase() || u.name.toLowerCase() === cleanUser.toLowerCase() || (!cleanUser && u.accessLevels.includes(requiredLevel))) &&
+        u.password === cleanPass
+      );
+
+      if (matchedEnvUser) {
+        const levels = matchedEnvUser.accessLevels || ['judge'];
+        if (levels.includes(requiredLevel) || levels.includes('admin')) {
+          return { success: true, user: matchedEnvUser };
+        } else {
+          return { success: false, error: `Access Denied: Your account does not have "${requiredLevel.toUpperCase()}" permissions.` };
+        }
+      }
     }
-    const { data, error } = await supabase.from('passwords').select('manager').eq('id', 'system').single();
-    if (error) {
-      console.error('Supabase manager verification error:', error);
-      throw new Error('Security verification failed. Please check network/Supabase connection.');
+
+    // 2. Check Database / Custom Judges table accounts
+    const judges = await this.getJudges();
+    const userAcc = judges.find(j => 
+      (j.username.toLowerCase() === cleanUser.toLowerCase() || j.name.toLowerCase() === cleanUser.toLowerCase() || (!cleanUser && (j.accessLevels || []).includes(requiredLevel))) && 
+      j.password === cleanPass
+    );
+
+    if (userAcc) {
+      const levels = userAcc.accessLevels || ['judge'];
+      if (levels.includes(requiredLevel) || levels.includes('admin')) {
+        return { success: true, user: userAcc };
+      } else {
+        return { success: false, error: `Access Denied: Your account does not have "${requiredLevel.toUpperCase()}" permissions.` };
+      }
     }
-    return data && data.manager === inputPassword;
+
+    // 3. Fallback to system passwords table
+    if (isSupabaseConfigured && supabase) {
+      const { data: sysPass } = await supabase.from('passwords').select('*').eq('id', 'system').maybeSingle();
+      if (sysPass) {
+        if (requiredLevel === 'admin' && sysPass.admin === cleanPass) return { success: true, user: { name: 'System Admin', role: 'admin' } };
+        if (requiredLevel === 'manager' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Manager', role: 'manager' } };
+        if (requiredLevel === 'scan' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Scanner User', role: 'scan' } };
+      }
+    }
+
+    return { success: false, error: 'Invalid Username or Password!' };
+  },
+
+  async verifyAdminPassword(inputPassword, username = '') {
+    const res = await this.verifyUserAccess({ username, password: inputPassword, requiredLevel: 'admin' });
+    return res.success;
+  },
+
+  async verifyManagerPassword(inputPassword, username = '') {
+    const res = await this.verifyUserAccess({ username, password: inputPassword, requiredLevel: 'manager' });
+    return res.success;
   },
 
   async getPasswords() {
@@ -818,36 +912,110 @@ export const storeService = {
   },
 
   // 5. JUDGES & SCORES
+  getDeletedJudgeIds() {
+    try {
+      return JSON.parse(localStorage.getItem('deleted_judge_ids') || '[]');
+    } catch (e) {
+      return [];
+    }
+  },
+
+  addDeletedJudgeId(id) {
+    try {
+      const list = this.getDeletedJudgeIds();
+      if (!list.includes(id)) {
+        list.push(id);
+        localStorage.setItem('deleted_judge_ids', JSON.stringify(list));
+      }
+    } catch (e) {}
+  },
+
   async getJudges() {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    const deletedIds = this.getDeletedJudgeIds();
+    let customUpdatedJudges = {};
+    try {
+      customUpdatedJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
+    } catch (e) {}
 
-    const { data, error } = await supabase.from('judges').select('*');
-    if (error) {
-      console.error('Supabase fetch judges error:', error);
-      throw error;
+    const envUsers = this.getEnvUsers().filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.username));
+
+    let combined = [...envUsers];
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from('judges').select('*');
+      if (!error && data && data.length > 0) {
+        const dbJudges = data.map(mapJudgeFromDb);
+        for (const dbj of dbJudges) {
+          if (!combined.some(u => u.username.toLowerCase() === dbj.username.toLowerCase())) {
+            combined.push(dbj);
+          }
+        }
+      } else if (!data || data.length === 0) {
+        combined = [...envUsers, ...INITIAL_JUDGES];
+      }
+    } else {
+      combined = [...envUsers, ...INITIAL_JUDGES];
     }
 
-    if (!data || data.length === 0) {
-      const insertRows = INITIAL_JUDGES.map(mapJudgeToDb);
-      const { error: seedErr } = await supabase.from('judges').insert(insertRows);
-      if (seedErr) console.error('Error seeding judges:', seedErr);
-      return INITIAL_JUDGES;
-    }
+    const filtered = combined.filter(j => !deletedIds.includes(j.id) && !deletedIds.includes(j.username));
 
-    return data.map(mapJudgeFromDb);
+    // Apply custom updated overrides
+    return filtered.map(j => {
+      const override = customUpdatedJudges[j.id] || customUpdatedJudges[j.username.toLowerCase()];
+      return override ? { ...j, ...override } : j;
+    });
   },
 
   async addJudge(judge) {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
-
     const newJudge = { ...judge, id: judge.id || 'jd-' + Date.now() };
-    const { error } = await supabase.from('judges').insert([mapJudgeToDb(newJudge)]);
-    if (error) {
-      console.error('Supabase add judge error:', error);
-      throw error;
+
+    try {
+      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
+      customJudges[newJudge.id] = newJudge;
+      if (newJudge.username) customJudges[newJudge.username.toLowerCase()] = newJudge;
+      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('judges').upsert([mapJudgeToDb(newJudge)]);
+      if (error) console.error('Supabase add judge error:', error);
     }
 
     return newJudge;
+  },
+
+  async updateJudge(judge) {
+    try {
+      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
+      customJudges[judge.id] = judge;
+      if (judge.username) customJudges[judge.username.toLowerCase()] = judge;
+      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('judges').upsert([mapJudgeToDb(judge)]);
+      if (error) {
+        console.error('Supabase update judge error:', error);
+      }
+    }
+
+    return judge;
+  },
+
+  async deleteJudge(id) {
+    this.addDeletedJudgeId(id);
+
+    try {
+      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
+      delete customJudges[id];
+      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('judges').delete().eq('id', id);
+      if (error) {
+        console.error('Supabase delete judge error:', error);
+      }
+    }
   },
 
   async getScores() {
@@ -915,45 +1083,172 @@ export const storeService = {
     };
   },
 
-  // 6. JUDGING LOCK STATUS
+  // 6. JUDGING LOCK & REVEAL STATUS
   async getJudgingLock() {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+    let localMap = {};
+    try {
+      localMap = JSON.parse(localStorage.getItem('custom_judging_locks') || '{}');
+    } catch (e) {}
 
-    const { data, error } = await supabase.from('judging_locks').select('*');
-    if (error) {
-      console.error('Supabase fetch judging locks error:', error);
-      throw error;
-    }
+    const locksMap = { ...localMap };
 
-    const locksMap = {};
-    if (data) {
-      data.forEach(row => {
-        locksMap[row.event_id] = {
-          isCompleted: row.is_completed,
-          completedAt: row.completed_at
-        };
-      });
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from('judging_locks').select('*');
+      if (!error && data) {
+        data.forEach(row => {
+          const local = localMap[row.event_id] || {};
+          locksMap[row.event_id] = {
+            isCompleted: Boolean(row.is_completed || local.isCompleted),
+            completedAt: row.completed_at || local.completedAt,
+            judgeLocks: row.judge_locks || local.judgeLocks || {},
+            revealedPlaces: row.revealed_places || local.revealedPlaces || {}
+          };
+        });
+      }
     }
     return locksMap;
   },
 
+  async lockJudgeForEvent(eventId, judgeId) {
+    const locks = await this.getJudgingLock();
+    const existing = locks[eventId] || {};
+    const updatedJudgeLocks = {
+      ...(existing.judgeLocks || {}),
+      [judgeId]: true
+    };
+
+    const allJudges = await this.getJudges();
+    const assignedJudges = allJudges.filter(j => (j.assignedEvents || []).includes(eventId));
+
+    const isAllAssignedLocked = assignedJudges.length > 0
+      ? assignedJudges.every(j => Boolean(updatedJudgeLocks[j.id] || updatedJudgeLocks[j.username]))
+      : true;
+
+    const isCompleted = Boolean(existing.isCompleted || isAllAssignedLocked);
+    const completedAt = existing.completedAt || (isCompleted ? new Date().toISOString() : null);
+
+    try {
+      const localLocks = JSON.parse(localStorage.getItem('custom_judging_locks') || '{}');
+      localLocks[eventId] = {
+        isCompleted,
+        completedAt,
+        judgeLocks: updatedJudgeLocks,
+        revealedPlaces: existing.revealedPlaces || {}
+      };
+      localStorage.setItem('custom_judging_locks', JSON.stringify(localLocks));
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      let { error } = await supabase.from('judging_locks').upsert([{
+        event_id: eventId,
+        is_completed: isCompleted,
+        judge_locks: updatedJudgeLocks,
+        completed_at: completedAt
+      }]);
+
+      if (error && (error.message.includes('judge_locks') || error.code === 'PGRST204')) {
+        await supabase.from('judging_locks').upsert([{
+          event_id: eventId,
+          is_completed: isCompleted,
+          completed_at: completedAt
+        }]);
+      }
+    }
+
+    return { isCompleted, judgeLocks: updatedJudgeLocks };
+  },
+
   async finalizeJudging(eventId) {
-    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
-
     const completedAt = new Date().toISOString();
-    const { error } = await supabase.from('judging_locks').upsert([{
-      event_id: eventId,
-      is_completed: true,
-      completed_at: completedAt
-    }]);
+    try {
+      const localLocks = JSON.parse(localStorage.getItem('custom_judging_locks') || '{}');
+      localLocks[eventId] = {
+        ...(localLocks[eventId] || {}),
+        isCompleted: true,
+        completedAt
+      };
+      localStorage.setItem('custom_judging_locks', JSON.stringify(localLocks));
+    } catch (e) {}
 
-    if (error) {
-      console.error('Supabase finalize judging lock error:', error);
-      throw error;
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('judging_locks').upsert([{
+        event_id: eventId,
+        is_completed: true,
+        completed_at: completedAt
+      }]);
+      if (error) console.error('Supabase finalize judging lock error:', error);
     }
   },
 
-  // 7. BACKUP EXPORT
+  async setRevealedPlace(eventId, place, isRevealed = true) {
+    const locks = await this.getJudgingLock();
+    const existing = locks[eventId] || {};
+    const updatedPlaces = {
+      ...(existing.revealedPlaces || {}),
+      [place]: isRevealed
+    };
+
+    try {
+      const localLocks = JSON.parse(localStorage.getItem('custom_judging_locks') || '{}');
+      localLocks[eventId] = {
+        ...existing,
+        isCompleted: existing.isCompleted || true,
+        revealedPlaces: updatedPlaces
+      };
+      localStorage.setItem('custom_judging_locks', JSON.stringify(localLocks));
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('judging_locks').upsert([{
+        event_id: eventId,
+        is_completed: existing.isCompleted || true,
+        completed_at: existing.completedAt || new Date().toISOString(),
+        revealed_places: updatedPlaces
+      }]);
+      if (error) console.error('Supabase setRevealedPlace error:', error);
+    }
+
+    return updatedPlaces;
+  },
+
+  // 7. BACKUP EXPORT & TESTING RESET
+  async resetJudgingState() {
+    try {
+      localStorage.removeItem('custom_judging_locks');
+    } catch (e) {}
+
+    if (isSupabaseConfigured && supabase) {
+      const [errScores, errLocks] = await Promise.all([
+        supabase.from('scores').delete().neq('id', 'non-existent-id'),
+        supabase.from('judging_locks').delete().neq('event_id', 'non-existent-id')
+      ]);
+
+      if (errScores.error) console.error('Error clearing scores:', errScores.error);
+      if (errLocks.error) console.error('Error clearing locks:', errLocks.error);
+    }
+
+    return true;
+  },
+
+  async resetTestState() {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    // Delete teams (and their members), attendance logs, scores, and judging lock states
+    const [errTeams, errAtt, errScores, errLocks] = await Promise.all([
+      supabase.from('teams').delete().neq('id', 'non-existent-id'),
+      supabase.from('attendance').delete().neq('id', -1),
+      supabase.from('scores').delete().neq('id', 'non-existent-id'),
+      supabase.from('judging_locks').delete().neq('event_id', 'non-existent-id')
+    ]);
+
+    if (errTeams.error) console.error('Error clearing teams:', errTeams.error);
+    if (errAtt.error) console.error('Error clearing attendance:', errAtt.error);
+    if (errScores.error) console.error('Error clearing scores:', errScores.error);
+    if (errLocks.error) console.error('Error clearing locks:', errLocks.error);
+
+    return true;
+  },
+
   async exportFullBackup() {
     const backupData = {
       version: '1.0',
@@ -969,3 +1264,4 @@ export const storeService = {
     return JSON.stringify(backupData, null, 2);
   }
 };
+

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#39ff88" />
+      <stop offset="50%" stop-color="#18c96a" />
+      <stop offset="100%" stop-color="#052e16" />
+    </linearGradient>
+    <filter id="neonShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#39ff88" flood-opacity="0.8" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#050806" />
+  <g filter="url(#neonShadow)">
+    <path d="M 256 64 L 384 416 L 312 416 L 278 320 L 234 320 L 200 416 L 128 416 Z M 256 160 L 244 260 L 268 260 Z" fill="url(#emeraldGlow)" stroke="#39ff88" stroke-width="8" stroke-linejoin="bevel" />
+    <path d="M 170 340 L 342 340" stroke="#39ff88" stroke-width="12" stroke-linecap="square" />
+  </g>
+</svg>

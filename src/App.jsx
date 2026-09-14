@@ -8,6 +8,10 @@ import Manager from './pages/Manager';
 import Judge from './pages/Judge';
 import Grainient from './components/Grainient';
 
+import Results from './pages/Results';
+import Scan from './pages/Scan';
+import Pass from './pages/Pass';
+
 function App() {
   return (
     <BrowserRouter>
@@ -27,7 +31,7 @@ function App() {
           /* --- CUSTOMIZE WEBSITE GRADIENT COLORS HERE --- */
           color1="#54b567" /* Color 1: Green Accent */
           color2="#150d2e" /* Color 2: Deep Dark Background Base */
-          color3="#72ef40" /* Color 3: Lime Glow */
+          color3="#349448ff" /* Color 3: Lime Glow */
         />
       </div>
 
@@ -37,9 +41,12 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/student" element={<StudentProfile />} />
+            <Route path="/results" element={<Results />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/manager" element={<Manager />} />
             <Route path="/judge" element={<Judge />} />
+            <Route path="/scan" element={<Scan />} />
+            <Route path="/pass" element={<Pass />} />
           </Routes>
         </main>
 

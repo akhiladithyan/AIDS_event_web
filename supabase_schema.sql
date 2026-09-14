@@ -9,6 +9,8 @@ ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS department TEXT;
 ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS lunch BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS snacks BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS student_scans JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.judging_locks ADD COLUMN IF NOT EXISTS revealed_places JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.judges ADD COLUMN IF NOT EXISTS access_levels JSONB DEFAULT '["judge"]'::jsonb;
 
 -- 1. Events Table
 CREATE TABLE IF NOT EXISTS public.events (

@@ -1,91 +1,62 @@
-:root {
-  --green-primary: rgba(34, 197, 94, 1);
-  --green-glow: rgba(34, 197, 94, 0.25);
-  --green-border: rgba(34, 197, 94, 0.8);
-  --border-color: rgba(255, 255, 255, 0.12);
-  --background-dark: rgba(18, 12, 38, 0.75);
-}
-
+.particle-card,
 .magic-bento-card {
-  display: flex;
-  flex-direction: column;
   position: relative;
-  width: 100%;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(18, 12, 38, 0.55);
-  backdrop-filter: blur(24px) saturate(1.8) brightness(1.1);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(1.1);
   overflow: hidden;
-  box-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.37),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 0 rgba(255, 255, 255, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-
-  --glow-x: 50%;
-  --glow-y: 50%;
-  --glow-intensity: 0;
-  --glow-radius: 350px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #120f17;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transform-style: preserve-3d;
+  perspective: 1000px;
 }
 
-.magic-bento-card:hover {
-  transform: translateY(-4px);
-  background: rgba(22, 15, 46, 0.7);
-  box-shadow:
-    0 16px 40px 0 rgba(0, 0, 0, 0.45),
-    0 0 30px var(--green-glow),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
-}
-
-/* Border glow effect with Green theme */
-.magic-bento-card--border-glow::after {
+.particle-card::before {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
   padding: 1.5px;
   background: radial-gradient(
-    var(--glow-radius) circle at var(--glow-x) var(--glow-y),
-    rgba(34, 197, 94, calc(var(--glow-intensity) * 0.9)) 0%,
-    rgba(34, 197, 94, calc(var(--glow-intensity) * 0.4)) 35%,
-    transparent 70%
+    var(--glow-radius, 300px) circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(var(--glow-color, 239, 74, 64), var(--glow-intensity, 0)) 0%,
+    transparent 100%
   );
-  border-radius: inherit;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
-  opacity: 1;
-  transition: opacity 0.3s ease;
-  z-index: 5;
+  z-index: 10;
 }
 
-.particle-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.particle::before {
+.particle-card::after {
   content: '';
   position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: rgba(34, 197, 94, 0.3);
-  border-radius: 50%;
-  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    var(--glow-radius, 300px) circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(var(--glow-color, 239, 74, 64), calc(var(--glow-intensity, 0) * 0.15)) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
-.particle-container:hover {
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.3),
-    0 0 25px var(--green-glow);
+.particle {
+  pointer-events: none;
+  z-index: 50;
+}
+
+.click-ripple {
+  pointer-events: none;
 }
 
 /* Global spotlight styles */
@@ -94,8 +65,4 @@
   will-change: transform, opacity;
   z-index: 200 !important;
   pointer-events: none;
-}
-
-.bento-section {
-  position: relative;
 }

@@ -230,7 +230,7 @@ const Home = () => {
                     <div style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'linear-gradient(to top, rgba(12, 8, 24, 0.95), transparent 60%)'
+                      background: 'linear-gradient(to top, rgba(8, 24, 13, 0.95), transparent 60%)'
                     }} />
                     <span className="badge-coral" style={{ position: 'absolute', top: 16, left: 16 }}>
                       {evt.category}
