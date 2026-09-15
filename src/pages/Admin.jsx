@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import { isSupabaseConfigured } from '../services/supabase';
 import PillButton from '../components/PillButton';
-import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Lock, ChevronDown, ChevronUp, Users, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Lock, ChevronDown, ChevronUp, Users, ArrowLeft, Upload } from 'lucide-react';
 
 const Admin = () => {
   const [usernameInput, setUsernameInput] = useState('');
@@ -41,6 +41,8 @@ const Admin = () => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactAvailability, setContactAvailability] = useState('');
   const [contactBadgeText, setContactBadgeText] = useState('');
+  const [contactProfilePic, setContactProfilePic] = useState('/profile_pic/default_avatar.jpg');
+  const [isUploadingContactPic, setIsUploadingContactPic] = useState(false);
   const [contactIsPrimary, setContactIsPrimary] = useState(false);
   const [contactTagsStr, setContactTagsStr] = useState('');
 
@@ -164,6 +166,7 @@ const Admin = () => {
         email: contactEmail,
         availability: contactAvailability,
         badgeText: contactBadgeText || (contactIsPrimary ? 'Primary Contact' : 'Co-ordinator'),
+        profilePic: contactProfilePic || '/profile_pic/default_avatar.jpg',
         isPrimary: contactIsPrimary,
         tags
       };
@@ -190,9 +193,27 @@ const Admin = () => {
     setContactEmail(c.email || '');
     setContactAvailability(c.availability || '');
     setContactBadgeText(c.badgeText || '');
+    setContactProfilePic(c.profilePic || '/profile_pic/default_avatar.jpg');
     setContactIsPrimary(Boolean(c.isPrimary));
     setContactTagsStr(c.tags ? c.tags.join(', ') : '');
     setShowContactModal(true);
+  };
+
+  const handleContactPicFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingContactPic(true);
+      const uploadedUrl = await storeService.uploadContactAvatar(file);
+      setContactProfilePic(uploadedUrl);
+      alert('✅ Profile picture uploaded successfully!');
+    } catch (err) {
+      console.error('File upload error:', err);
+      alert('Upload failed: ' + (err.message || 'Error processing image file.'));
+    } finally {
+      setIsUploadingContactPic(false);
+    }
   };
 
   const handleDeleteContact = async (id) => {
@@ -749,7 +770,44 @@ const Admin = () => {
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Tags (Comma separated)</label>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                      Profile Picture (Upload file or enter image URL / /profile_pic/ path)
+                    </label>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="/profile_pic/default_avatar.jpg"
+                        value={contactProfilePic}
+                        onChange={e => setContactProfilePic(e.target.value)}
+                        style={{ flexGrow: 1 }}
+                      />
+                      <label className="btn-secondary" style={{ padding: '10px 16px', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        <Upload size={14} /> {isUploadingContactPic ? 'Uploading...' : 'Upload Image'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleContactPicFileUpload}
+                          disabled={isUploadingContactPic}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
+                    {contactProfilePic && (
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <img
+                          src={contactProfilePic}
+                          alt="Preview"
+                          style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(28, 230, 4, 0.4)' }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Avatar Preview</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Tags / Queries Handled (Comma separated)</label>
                     <input
                       type="text"
                       className="glass-input"

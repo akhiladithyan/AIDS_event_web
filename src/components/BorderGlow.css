@@ -56,6 +56,8 @@
   height: 100%;
   border-radius: calc(var(--border-radius, 28px) - var(--border-width, 1.5px));
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .border-glow-wrapper:hover {

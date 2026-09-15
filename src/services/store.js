@@ -112,6 +112,7 @@ export const INITIAL_CONTACTS = [
     availability: 'Available 9 AM - 6 PM',
     isPrimary: true,
     badgeText: 'Primary Contact',
+    profilePic: '/profile_pic/default_avatar.jpg',
     tags: ['Technical Doubts', 'Event Queries', 'AI & DS Dept']
   },
   {
@@ -123,6 +124,7 @@ export const INITIAL_CONTACTS = [
     availability: 'Helpdesk Desk',
     isPrimary: false,
     badgeText: 'General Desk',
+    profilePic: '/profile_pic/default_avatar.jpg',
     tags: ['Registrations', 'Venue Guidance', 'On-Spot Help']
   }
 ];
@@ -1354,6 +1356,7 @@ export const storeService = {
       availability: contact.availability || 'Available Event Day',
       isPrimary: Boolean(contact.isPrimary),
       badgeText: contact.badgeText || (contact.isPrimary ? 'Primary Contact' : 'Co-ordinator'),
+      profilePic: contact.profilePic || '/profile_pic/default_avatar.jpg',
       tags: Array.isArray(contact.tags) ? contact.tags : (contact.tags ? contact.tags.split(',').map(t => t.trim()) : ['Queries', 'Helpdesk'])
     };
     const updated = [...contacts, newContact];
@@ -1379,6 +1382,39 @@ export const storeService = {
       localStorage.setItem('aidex_contacts', JSON.stringify(updated));
     } catch (e) {}
     return true;
+  },
+
+  async uploadContactAvatar(file) {
+    if (!file) throw new Error('No image file selected.');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const filePath = `profile_pics/${fileName}`;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+        if (!uploadError) {
+          const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          if (data?.publicUrl) return data.publicUrl;
+        } else {
+          console.warn('Supabase storage upload notice:', uploadError);
+        }
+      } catch (err) {
+        console.warn('Supabase avatar upload notice:', err);
+      }
+    }
+
+    // Fallback to Data URL for instant display
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
   }
 };
 

@@ -381,7 +381,7 @@ body.modal-open .site-navbar-header {
 /* Responsive Helper Utilities */
 @media (min-width: 769px) {
   .desktop-only {
-    display: block !important;
+    display: block;
   }
   .mobile-only {
     display: none !important;
@@ -393,7 +393,7 @@ body.modal-open .site-navbar-header {
     display: none !important;
   }
   .mobile-only {
-    display: block !important;
+    display: block;
   }
 }
 

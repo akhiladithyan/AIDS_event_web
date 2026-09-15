@@ -173,214 +173,228 @@
   }
 }
 
-/* Contact Details Card Below Map Section */
-.contact-info-section {
-  width: 100%;
-  margin-top: 140px;
-  margin-bottom: 140px;
-  scroll-margin-top: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+/* Contact Cards Single Row Layout on Desktop (3 side-by-side cards) */
+.contact-cards-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: stretch !important;
+  gap: 24px !important;
+  width: 100% !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
 }
 
-.contact-info-header {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.contact-card-col {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: 350px !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.contact-info-title {
-  font-size: clamp(1.8rem, 3vw, 2.3rem);
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-  letter-spacing: -0.02em;
+.contact-card-col > * {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
 }
 
-.contact-info-desc {
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0;
+.contact-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: rgba(28, 230, 4, 0.12);
+  border: 1px solid rgba(28, 230, 4, 0.35);
+  color: #1ce604;
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  width: fit-content;
 }
 
-/* Job Card Grid Layout Matching Reference Image */
-.contact-job-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
-  gap: 24px;
-}
-
-.contact-job-card {
-  background: rgba(12, 20, 14, 0.85);
+/* Reference Profile Card Layout - Compact Shorter Dimensions */
+.contact-profile-card {
+  position: relative;
+  background: rgba(10, 18, 12, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(28, 230, 4, 0.25);
-  border-radius: 28px;
-  padding: 32px;
+  border: 1px solid rgba(28, 230, 4, 0.3);
+  border-radius: 26px;
+  padding: 22px 18px 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(28, 230, 4, 0.05);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 0 25px rgba(28, 230, 4, 0.05);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-.contact-job-card--highlight {
-  background: rgba(14, 26, 17, 0.9);
-  border-color: rgba(28, 230, 4, 0.45);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(28, 230, 4, 0.08);
+.contact-profile-card--primary {
+  background: linear-gradient(145deg, rgba(14, 28, 18, 0.95), rgba(8, 16, 10, 0.98));
+  border-color: rgba(28, 230, 4, 0.5);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(28, 230, 4, 0.15);
 }
 
-.contact-job-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(28, 230, 4, 0.6);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 0 25px rgba(28, 230, 4, 0.12);
-}
-
-/* Card Header Row */
-.contact-job-top {
+.contact-card-top-header {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
 }
 
-.contact-job-company {
-  font-size: 0.88rem;
+.contact-badge-pill {
+  font-size: 0.7rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.contact-job-time {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.45);
-  font-weight: 500;
-}
-
-.contact-job-badge {
-  padding: 6px 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
   border-radius: 100px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.contact-job-badge--primary {
-  background: rgba(28, 230, 4, 0.15);
-  border-color: rgba(28, 230, 4, 0.4);
+  background: rgba(28, 230, 4, 0.12);
+  border: 1px solid rgba(28, 230, 4, 0.3);
   color: #1ce604;
 }
 
-/* Name & Title */
-.contact-job-title-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.contact-star-icon {
+  color: #fbbf24;
+  font-size: 1rem;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
 }
 
-.contact-job-name {
-  font-size: 1.65rem;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
+/* Bigger Circular Avatar Image with Dual Glowing Border */
+.contact-avatar-wrapper {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.contact-avatar-ring {
+  width: 145px;
+  height: 145px;
+  border-radius: 50%;
+  padding: 4px;
+  background: linear-gradient(135deg, #1ce604 0%, rgba(28, 230, 4, 0.2) 50%, #ffffff 100%);
+  box-shadow: 0 0 25px rgba(28, 230, 4, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.contact-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #060c08;
+}
+
+/* Profile Info */
+.contact-profile-info {
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.contact-profile-name {
+  font-size: 1.35rem;
+  font-weight: 900;
+  margin: 0 0 2px 0;
   letter-spacing: -0.02em;
 }
 
-.contact-job-designation {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1ce604;
-  letter-spacing: 0.02em;
+.contact-profile-role {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
 }
 
-/* Category Tags Row */
-.contact-job-tags {
+/* Queries Handled Section */
+.contact-queries-box {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-queries-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #1ce604;
+  font-family: monospace;
+  text-align: left;
+}
+
+.contact-queries-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  justify-content: center;
+  gap: 5px;
 }
 
-.contact-tag {
-  padding: 6px 14px;
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.78rem;
+.contact-query-tag {
+  font-size: 0.72rem;
   font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 100px;
+  background: rgba(28, 230, 4, 0.08);
+  border: 1px solid rgba(28, 230, 4, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* Divider Line */
-.contact-job-divider {
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 4px 0;
-}
-
-/* Card Bottom Section (Phone & Apply Pill Button) */
-.contact-job-bottom {
+/* Equal-sized Pill Nav Action Buttons Row */
+.contact-action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
 }
 
-.contact-job-phone {
-  display: flex;
-  flex-direction: column;
+.contact-equal-btn {
+  flex: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 10px 14px !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
 }
 
-.contact-phone-val {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #ffffff;
-  font-family: monospace;
-  letter-spacing: -0.02em;
+.contact-whatsapp-pill {
+  background: rgba(37, 211, 102, 0.18) !important;
+  border: 1px solid rgba(37, 211, 102, 0.45) !important;
+  color: #25D366 !important;
 }
 
-.contact-phone-sub {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
+.contact-whatsapp-pill:hover {
+  background: rgba(37, 211, 102, 0.3) !important;
+  box-shadow: 0 0 16px rgba(37, 211, 102, 0.4) !important;
 }
 
-.contact-apply-btn {
-  padding: 12px 24px;
-  border-radius: 100px;
-  background: #1ce604;
-  color: #060c08;
-  font-weight: 800;
-  font-size: 0.9rem;
-  text-decoration: none;
-  box-shadow: 0 4px 20px rgba(28, 230, 4, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.contact-call-pill {
+  background: rgba(28, 230, 4, 0.18) !important;
+  border: 1px solid rgba(28, 230, 4, 0.45) !important;
+  color: #1ce604 !important;
 }
 
-.contact-apply-btn:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 8px 25px rgba(28, 230, 4, 0.55);
-  background: #20f805;
+.contact-call-pill:hover {
+  background: rgba(28, 230, 4, 0.3) !important;
+  box-shadow: 0 0 16px rgba(28, 230, 4, 0.4) !important;
 }
 
-@media (max-width: 600px) {
-  .contact-job-card {
-    padding: 24px;
-  }
-
-  .contact-job-bottom {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .contact-apply-btn {
-    width: 100%;
-    text-align: center;
-  }
-}

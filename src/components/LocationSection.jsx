@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink, PhoneCall } from 'lucide-react';
 import PillButton from './PillButton';
 import BorderGlow from './BorderGlow';
 import ShinyText from './ShinyText';
+import Carousel from './Carousel';
 import { storeService } from '../services/store';
 import './LocationSection.css';
 
@@ -87,89 +88,176 @@ export default function LocationSection() {
           </p>
         </div>
 
-        <div className="contact-job-grid">
-          {contacts.map(c => (
-            <BorderGlow
-              key={c.id}
-              glowColor={c.isPrimary ? "#1ce604" : "rgba(28, 230, 4, 0.7)"}
-              glowRadius={300}
-              borderRadius={28}
-            >
-              <div
-                className={`contact-job-card ${c.isPrimary ? 'contact-job-card--highlight' : ''}`}
+        {/* Laptop View: 3 Cards strictly side-by-side in a single row */}
+        <div className="desktop-only" style={{ width: '100%' }}>
+          <div className="contact-cards-row">
+            {contacts.map(c => (
+              <div key={c.id} className="contact-card-col">
+                <BorderGlow
+                  glowColor={c.isPrimary ? "#1ce604" : "rgba(28, 230, 4, 0.7)"}
+                  glowRadius={300}
+                  borderRadius={24}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <div className={`contact-profile-card ${c.isPrimary ? 'contact-profile-card--primary' : ''}`}>
+                    {/* Top Star / Badge Header */}
+                    <div className="contact-card-top-header">
+                      <span className="contact-badge-pill">
+                        {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
+                      </span>
+                      <div className="contact-star-icon">★</div>
+                    </div>
+
+                    {/* Circular Profile Avatar Picture */}
+                    <div className="contact-avatar-wrapper">
+                      <div className="contact-avatar-ring">
+                        <img
+                          src={c.profilePic || '/profile_pic/default_avatar.jpg'}
+                          alt={c.name}
+                          className="contact-avatar-img"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/profile_pic/default_avatar.jpg';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Name & Role */}
+                    <div className="contact-profile-info">
+                      <h3 className="contact-profile-name">
+                        <ShinyText text={c.name} color="#ffffff" shineColor="#1ce604" speed={3.5} />
+                      </h3>
+                      <div className="contact-profile-role">{c.role}</div>
+                    </div>
+
+                    {/* Query Types Tags */}
+                    {c.tags && c.tags.length > 0 && (
+                      <div className="contact-queries-box">
+                        <div className="contact-queries-label">QUERIES HANDLED</div>
+                        <div className="contact-queries-tags">
+                          {c.tags.map((tag, idx) => (
+                            <span key={idx} className="contact-query-tag">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Equal-sized Action Buttons: WhatsApp & Call Now with Pill-Nav style */}
+                    <div className="contact-action-row">
+                      <PillButton
+                        as="a"
+                        href={c.whatsappUrl || `https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="primary"
+                        className="contact-equal-btn contact-whatsapp-pill"
+                      >
+                        <img
+                          src="/images/whatsapp-icon.png"
+                          alt="WhatsApp"
+                          style={{ width: 16, height: 16, objectFit: 'contain' }}
+                        />
+                        WhatsApp
+                      </PillButton>
+
+                      <PillButton
+                        as="a"
+                        href={`tel:${c.phone}`}
+                        variant="primary"
+                        className="contact-equal-btn contact-call-pill"
+                      >
+                        <PhoneCall size={15} /> Call Now
+                      </PillButton>
+                    </div>
+                  </div>
+                </BorderGlow>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile View: Carousel Slider */}
+        <div className="mobile-only contact-carousel-wrapper" style={{ maxWidth: 420, margin: '0 auto', width: '100%' }}>
+          <Carousel>
+            {contacts.map(c => (
+              <BorderGlow
+                key={c.id}
+                glowColor={c.isPrimary ? "#1ce604" : "rgba(28, 230, 4, 0.7)"}
+                glowRadius={300}
+                borderRadius={24}
+                style={{ width: '100%' }}
               >
-                <div className="contact-job-top">
-                  <div className="contact-job-company">
-                    AIDEX '26 <span className="contact-job-time">{c.availability || 'Available 9 AM - 6 PM'}</span>
-                  </div>
-                  <span className={`contact-job-badge ${c.isPrimary ? 'contact-job-badge--primary' : ''}`}>
-                    {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
-                  </span>
-                </div>
-
-                <div className="contact-job-title-row">
-                  <h3 className="contact-job-name">
-                    <ShinyText text={c.name} color="#ffffff" shineColor="#1ce604" speed={3.5} />
-                  </h3>
-                  <div className="contact-job-designation">{c.role}</div>
-                </div>
-
-                {c.tags && c.tags.length > 0 && (
-                  <div className="contact-job-tags">
-                    {c.tags.map((tag, idx) => (
-                      <span key={idx} className="contact-tag">{tag}</span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="contact-job-divider" />
-
-                <div className="contact-job-bottom">
-                  <div className="contact-job-phone">
-                    <span className="contact-phone-val">{c.phone}</span>
-                    <span className="contact-phone-sub">{c.email || 'Direct Contact'}</span>
+                <div className={`contact-profile-card ${c.isPrimary ? 'contact-profile-card--primary' : ''}`}>
+                  <div className="contact-card-top-header">
+                    <span className="contact-badge-pill">
+                      {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
+                    </span>
+                    <div className="contact-star-icon">★</div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* WhatsApp Chat Button */}
+                  <div className="contact-avatar-wrapper">
+                    <div className="contact-avatar-ring">
+                      <img
+                        src={c.profilePic || '/profile_pic/default_avatar.jpg'}
+                        alt={c.name}
+                        className="contact-avatar-img"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/profile_pic/default_avatar.jpg';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="contact-profile-info">
+                    <h3 className="contact-profile-name">
+                      <ShinyText text={c.name} color="#ffffff" shineColor="#1ce604" speed={3.5} />
+                    </h3>
+                    <div className="contact-profile-role">{c.role}</div>
+                  </div>
+
+                  {c.tags && c.tags.length > 0 && (
+                    <div className="contact-queries-box">
+                      <div className="contact-queries-label">QUERIES HANDLED</div>
+                      <div className="contact-queries-tags">
+                        {c.tags.map((tag, idx) => (
+                          <span key={idx} className="contact-query-tag">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="contact-action-row">
                     <PillButton
                       as="a"
-                      href={c.whatsappUrl || "https://wa.me/qr/4HRMHEE5TIE6F1"}
+                      href={c.whatsappUrl || `https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       variant="primary"
-                      style={{
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 100,
-                        backgroundColor: '#25D366',
-                        borderColor: '#25D366',
-                        boxShadow: '0 4px 15px rgba(37, 211, 102, 0.4)'
-                      }}
-                      title="Chat on WhatsApp"
+                      className="contact-equal-btn contact-whatsapp-pill"
                     >
                       <img
                         src="/images/whatsapp-icon.png"
                         alt="WhatsApp"
-                        style={{ width: 22, height: 22, objectFit: 'contain' }}
+                        style={{ width: 18, height: 18, objectFit: 'contain' }}
                       />
+                      WhatsApp
                     </PillButton>
 
                     <PillButton
                       as="a"
                       href={`tel:${c.phone}`}
                       variant="primary"
-                      style={{ padding: '12px 22px', fontSize: '0.9rem' }}
+                      className="contact-equal-btn contact-call-pill"
                     >
-                      Call Now
+                      <PhoneCall size={16} /> Call Now
                     </PillButton>
                   </div>
                 </div>
-              </div>
-            </BorderGlow>
-          ))}
+              </BorderGlow>
+            ))}
+          </Carousel>
         </div>
       </div>
     </section>
