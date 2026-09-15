@@ -108,7 +108,9 @@ export default function LocationSection() {
                 </div>
 
                 <div className="contact-job-title-row">
-                  <h3 className="contact-job-name">{c.name}</h3>
+                  <h3 className="contact-job-name">
+                    <ShinyText text={c.name} color="#ffffff" shineColor="#1ce604" speed={3.5} />
+                  </h3>
                   <div className="contact-job-designation">{c.role}</div>
                 </div>
 

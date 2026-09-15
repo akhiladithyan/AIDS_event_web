@@ -7,6 +7,7 @@ import LocationSection from '../components/LocationSection';
 import Grainient from '../components/Grainient';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
 import PillButton from '../components/PillButton';
+import ShinyText from '../components/ShinyText';
 import confetti from 'canvas-confetti';
 import { Sparkles, Calendar, Clock, MapPin, Trophy, Users, ArrowRight, X, CheckCircle, Copy, Download, ShieldAlert, Cpu } from 'lucide-react';
 
@@ -265,7 +266,9 @@ const Home = () => {
                   </div>
 
                   <div style={{ padding: 24, display: 'flex', flexDirection: 'column', flexGrow: 1, gap: 14 }}>
-                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>{evt.title}</h3>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0 }}>
+                      <ShinyText text={evt.title} color="#ffffff" shineColor="#1ce604" speed={3.5} />
+                    </h3>
                     <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.5, flexGrow: 1 }}>
                       {evt.description}
                     </p>
