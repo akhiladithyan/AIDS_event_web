@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import QRCode from 'qrcode';
 import { Html5Qrcode, Html5QrcodeScanner } from 'html5-qrcode';
 import PillButton from '../components/PillButton';
-import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet, Mail } from 'lucide-react';
+import { QrCode, Camera, UserPlus, CheckCircle2, XCircle, Search, Sparkles, Lock, RefreshCw, Download, Edit, Trash2, Plus, ChevronDown, ChevronUp, Users, ShieldCheck, Upload, FileSpreadsheet, Mail, ArrowLeft } from 'lucide-react';
 
 const Manager = () => {
   const [usernameInput, setUsernameInput] = useState('');
@@ -618,6 +619,9 @@ Vel Tech Multi Tech Engineering College`;
 
   return (
     <div style={{ maxWidth: 1180, margin: '40px auto', padding: '0 20px' }}>
+      <Link to="/" className="btn-secondary" style={{ marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: '0.85rem' }}>
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       {!isAuthenticated ? (
         /* MANAGER LOGIN MODAL */
         <div className="glass-panel" style={{ maxWidth: 440, margin: '60px auto', padding: 36, textAlign: 'center' }}>

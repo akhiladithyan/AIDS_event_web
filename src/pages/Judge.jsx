@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import confetti from 'canvas-confetti';
-import { Award, Trophy, Lock, CheckCircle, Save, Star, ShieldAlert, Sparkles, UserCheck, Edit } from 'lucide-react';
+import { Award, Trophy, Lock, CheckCircle, Save, Star, ShieldAlert, Sparkles, UserCheck, Edit, ArrowLeft } from 'lucide-react';
 
 const Judge = () => {
   const [judgeUser, setJudgeUser] = useState('');
@@ -196,6 +197,9 @@ const Judge = () => {
 
   return (
     <div className="judge-container">
+      <Link to="/" className="btn-secondary" style={{ marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: '0.85rem' }}>
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       {!currentJudge ? (
         /* JUDGE LOGIN PORTAL */
         <div className="glass-panel judge-login-card">

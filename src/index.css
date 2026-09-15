@@ -366,9 +366,8 @@ h6 {
 
 @media (max-width: 768px) {
   .site-navbar-header {
-    transform: none !important;
-    opacity: 1 !important;
-    transition: none !important;
+    top: 10px;
+    padding: 0 10px;
   }
 }
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import { isSupabaseConfigured } from '../services/supabase';
 import PillButton from '../components/PillButton';
-import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Lock, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Download, Database, Lock, ChevronDown, ChevronUp, Users, ArrowLeft } from 'lucide-react';
 
 const Admin = () => {
   const [usernameInput, setUsernameInput] = useState('');
@@ -229,6 +230,9 @@ const Admin = () => {
 
   return (
     <div style={{ maxWidth: 1100, margin: '40px auto', padding: '0 20px' }}>
+      <Link to="/" className="btn-secondary" style={{ marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: '0.85rem' }}>
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       {!isAuthenticated ? (
         /* ADMIN LOGIN MODAL */
         <div className="glass-panel" style={{ maxWidth: 440, margin: '60px auto', padding: 36, textAlign: 'center' }}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import confetti from 'canvas-confetti';
-import { Trophy, Award, Lock, Clock } from 'lucide-react';
+import { Trophy, Award, Lock, Clock, ArrowLeft } from 'lucide-react';
 import FlowingMenu from '../components/FlowingMenu';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
 import ShinyText from '../components/ShinyText';
@@ -319,6 +320,9 @@ const Results = () => {
 
   return (
     <div style={{ maxWidth: 1080, margin: '20px auto', padding: '0 12px' }}>
+      <Link to="/" className="btn-secondary" style={{ marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: '0.85rem' }}>
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       {/* HEADER & FLOWING EVENT MENU */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <h1 style={{ fontSize: 'clamp(1.8rem, 6vw, 4.8rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 24px 0' }}>

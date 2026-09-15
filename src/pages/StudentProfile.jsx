@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { storeService } from '../services/store';
 import QRCode from 'qrcode';
 import PillButton from '../components/PillButton';
-import { User, LogOut, QrCode as QrIcon, Shield, CheckCircle2, Clock, MapPin, Printer } from 'lucide-react';
+import { User, LogOut, QrCode as QrIcon, Shield, CheckCircle2, Clock, MapPin, Printer, ArrowLeft } from 'lucide-react';
 
 const StudentProfile = () => {
   const [userId, setUserId] = useState('');
@@ -202,6 +203,9 @@ const StudentProfile = () => {
 
   return (
     <div style={{ maxWidth: 880, margin: '40px auto', padding: '0 20px' }}>
+      <Link to="/" className="btn-secondary" style={{ marginBottom: 20, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: '0.85rem' }}>
+        <ArrowLeft size={16} /> Back to Home
+      </Link>
       {!loggedUser ? (
         /* LOGIN FORM */
         <div className="glass-panel" style={{ maxWidth: 480, margin: '0 auto', padding: 36 }}>

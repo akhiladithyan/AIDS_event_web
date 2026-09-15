@@ -14,22 +14,16 @@ const Navbar = () => {
     let ticking = false;
 
     const handleScroll = () => {
-      // Keep navbar fixed & steady on mobile screens so header doesn't slide down on direction reversal
-      if (window.innerWidth <= 768) {
-        setIsVisible(true);
-        return;
-      }
-
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
           const lastScrollY = lastScrollYRef.current;
 
-          if (currentScrollY <= 60) {
+          if (currentScrollY <= 40) {
             setIsVisible(true);
-          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 15) {
+          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 8) {
             setIsVisible(false);
-          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 25) {
+          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 12) {
             setIsVisible(true);
           }
 
@@ -137,8 +131,9 @@ const Navbar = () => {
     <header
       className="site-navbar-header"
       style={{
-        transform: isVisible ? 'translateY(0)' : 'translateY(-100px)',
-        opacity: isVisible ? 1 : 0
+        transform: isVisible ? 'translateY(0)' : 'translateY(-120%)',
+        opacity: isVisible ? 1 : 0,
+        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease'
       }}
     >
       {/* Desktop View PillNav */}
