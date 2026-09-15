@@ -152,6 +152,7 @@ const Home = () => {
           scrollDistance={1.4}
           holdDistance={0.4}
           useWindowScroll={true}
+          smoothing={0}
           onProgressChange={handleProgressChange}
         >
           <DoomsdayHero bgImage="/images/doom-hero.jpg" />

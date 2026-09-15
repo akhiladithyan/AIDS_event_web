@@ -174,7 +174,8 @@ const ScrollExpand = ({
 
     const onScroll = () => {
       target = readProgress();
-      if (propsRef.current.smoothing <= 0 || reduceMotion) {
+      // On mobile screens or when smoothing is 0, apply progress 1-to-1 with touch scroll to prevent lerp inertia direction reversal lag
+      if (propsRef.current.smoothing <= 0 || reduceMotion || window.innerWidth <= 768) {
         current = target;
         applyProgress(current);
         return;
