@@ -51,6 +51,18 @@ const Home = () => {
       window.scrollTo(0, 0);
     }
   }, []);
+
+  // Toggle body.modal-open class to hide header navbar when modal is active
+  useEffect(() => {
+    if (selectedEvent || registerModalEvent) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [selectedEvent, registerModalEvent]);
   const [department, setDepartment] = useState('');
   const [leaderName, setLeaderName] = useState('');
   const [leaderPhone, setLeaderPhone] = useState('');

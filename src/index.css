@@ -371,6 +371,13 @@ h6 {
   }
 }
 
+/* Hide Navbar when Event Details or Event Registration modal is open */
+body.modal-open .site-navbar-header {
+  transform: translateY(-150%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Responsive Helper Utilities */
 @media (min-width: 769px) {
   .desktop-only {
