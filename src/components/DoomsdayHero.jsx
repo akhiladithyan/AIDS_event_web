@@ -51,7 +51,7 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
             fuzzRange={10}
             enableHover={true}
             color="#ffffff"
-            fontSize="clamp(2rem, 11vw, 7.5rem)"
+            fontSize="clamp(2.8rem, 13.5vw, 7.5rem)"
             fontWeight={900}
           >
             AIDEX'26
