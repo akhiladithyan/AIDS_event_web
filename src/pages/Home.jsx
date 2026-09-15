@@ -9,7 +9,7 @@ import MagicBento, { ParticleCard } from '../components/MagicBento';
 import PillButton from '../components/PillButton';
 import ShinyText from '../components/ShinyText';
 import confetti from 'canvas-confetti';
-import { Sparkles, Calendar, Clock, MapPin, Trophy, Users, ArrowRight, X, CheckCircle, Copy, Download, ShieldAlert, Cpu } from 'lucide-react';
+import { Sparkles, Calendar, Clock, MapPin, Trophy, Users, ArrowRight, X, CheckCircle, Copy, Download, ShieldAlert, Cpu, ArrowLeft } from 'lucide-react';
 
 const isCashPrize = (evt) => {
   if (!evt) return false;
@@ -51,6 +51,58 @@ const Home = () => {
       window.scrollTo(0, 0);
     }
   }, []);
+
+  // Modal open/close helpers with Browser History & Phone Back Button support
+  const openEventModal = (evt) => {
+    setSelectedEvent(evt);
+    setRegisterModalEvent(null);
+    setRegistrationResult(null);
+    window.history.pushState({ aidexModal: 'event-details', id: evt.id }, '');
+  };
+
+  const openRegisterModal = (evt) => {
+    setRegisterModalEvent(evt);
+    setSelectedEvent(null);
+    setRegistrationResult(null);
+    setTeamName('');
+    setCollege('');
+    setDepartment('');
+    setLeaderName('');
+    setLeaderPhone('');
+    setLeaderEmail('');
+    setMemberNames(['', '', '']);
+    window.history.pushState({ aidexModal: 'event-register', id: evt.id }, '');
+  };
+
+  const closeModal = (skipHistory = false) => {
+    if (!skipHistory && (selectedEvent || registerModalEvent)) {
+      if (window.history.state?.aidexModal) {
+        window.history.back();
+        return;
+      }
+    }
+    setSelectedEvent(null);
+    setRegisterModalEvent(null);
+    setRegistrationResult(null);
+  };
+
+  // Hardware / Browser Back button listener for phones & tablets
+  useEffect(() => {
+    const handlePopState = () => {
+      if (registrationResult) {
+        setRegistrationResult(null);
+      } else if (registerModalEvent) {
+        setRegisterModalEvent(null);
+      } else if (selectedEvent) {
+        setSelectedEvent(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedEvent, registerModalEvent, registrationResult]);
 
   // Toggle body.modal-open class to hide header navbar when modal is active
   useEffect(() => {
@@ -299,24 +351,14 @@ const Home = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
                       <PillButton
-                        onClick={() => setSelectedEvent(evt)}
+                        onClick={() => openEventModal(evt)}
                         variant="secondary"
                         style={{ fontSize: '0.88rem', padding: '10px' }}
                       >
                         Event Details
                       </PillButton>
                       <PillButton
-                        onClick={() => {
-                          setRegisterModalEvent(evt);
-                          setRegistrationResult(null);
-                          setTeamName('');
-                          setCollege('');
-                          setDepartment('');
-                          setLeaderName('');
-                          setLeaderPhone('');
-                          setLeaderEmail('');
-                          setMemberNames(['', '', '']);
-                        }}
+                        onClick={() => openRegisterModal(evt)}
                         disabled={registeredTeamCount >= maxSlots}
                         variant="primary"
                         style={{ fontSize: '0.88rem', padding: '10px' }}
@@ -338,28 +380,50 @@ const Home = () => {
 
       {/* EVENT DETAILS MODAL */}
       {selectedEvent && (
-        <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
+        <div className="modal-overlay" onClick={() => closeModal()}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button
-              onClick={() => setSelectedEvent(null)}
-              style={{
-                position: 'absolute',
-                top: 20,
-                right: 20,
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '50%',
-                width: 36,
-                height: 36,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={20} />
-            </button>
+            {/* Modal Top Bar with Back Button & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <button
+                className="modal-back-btn"
+                onClick={() => closeModal()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(28, 230, 4, 0.12)',
+                  border: '1px solid rgba(28, 230, 4, 0.35)',
+                  color: '#1ce604',
+                  borderRadius: '100px',
+                  padding: '6px 14px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <button
+                onClick={() => closeModal()}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <span className="badge-coral">{selectedEvent.category}</span>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '12px 0 16px 0' }}>
@@ -407,10 +471,7 @@ const Home = () => {
 
             <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
               <PillButton
-                onClick={() => {
-                  setRegisterModalEvent(selectedEvent);
-                  setSelectedEvent(null);
-                }}
+                onClick={() => openRegisterModal(selectedEvent)}
                 variant="primary"
               >
                 Proceed to Register <ArrowRight size={16} />
@@ -422,28 +483,56 @@ const Home = () => {
 
       {/* TEAM REGISTRATION MODAL */}
       {registerModalEvent && (
-        <div className="modal-overlay" onClick={() => setRegisterModalEvent(null)}>
+        <div className="modal-overlay" onClick={() => closeModal()}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 720 }}>
-            <button
-              onClick={() => setRegisterModalEvent(null)}
-              style={{
-                position: 'absolute',
-                top: 20,
-                right: 20,
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '50%',
-                width: 36,
-                height: 36,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={20} />
-            </button>
+            {/* Modal Top Bar with Back Button & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <button
+                className="modal-back-btn"
+                onClick={() => {
+                  if (registrationResult) {
+                    setRegistrationResult(null);
+                  } else {
+                    closeModal();
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(28, 230, 4, 0.12)',
+                  border: '1px solid rgba(28, 230, 4, 0.35)',
+                  color: '#1ce604',
+                  borderRadius: '100px',
+                  padding: '6px 14px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <button
+                onClick={() => closeModal()}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             {!registrationResult ? (
               <>
@@ -684,7 +773,7 @@ const Home = () => {
                     <Copy size={16} /> Copy Credentials
                   </PillButton>
                   <PillButton
-                    onClick={() => setRegisterModalEvent(null)}
+                    onClick={() => closeModal()}
                     variant="primary"
                   >
                     Done
