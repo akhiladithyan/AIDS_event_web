@@ -75,10 +75,8 @@ const Home = () => {
 
   const handleProgressChange = (progress) => {
     setExpandProgress(progress);
-    if (progress >= 0.88) {
+    if (progress >= 0.6) {
       setIsCompleted(true);
-    } else {
-      setIsCompleted(false);
     }
   };
 
@@ -160,18 +158,18 @@ const Home = () => {
         </ScrollExpand>
       </div>
 
-      {/* Events Section Container - Completely hidden until ScrollExpand animation finishes */}
+      {/* Events Section Container */}
       <div
         id="events-section"
         style={{
           maxWidth: 1280,
           margin: '40px auto 0 auto',
           padding: '0 24px',
-          opacity: isCompleted || expandProgress > 0.85 ? 1 : 0,
-          transform: `translateY(${isCompleted || expandProgress > 0.85 ? 0 : 60}px)`,
-          transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: isCompleted || expandProgress > 0.85 ? 'auto' : 'none',
-          visibility: isCompleted || expandProgress > 0.8 ? 'visible' : 'hidden'
+          opacity: isCompleted || expandProgress > 0.5 ? 1 : 0,
+          transform: isCompleted || expandProgress > 0.5 ? 'none' : 'translateY(40px)',
+          transition: 'opacity 0.4s ease, transform 0.4s ease',
+          pointerEvents: isCompleted || expandProgress > 0.5 ? 'auto' : 'none',
+          visibility: isCompleted || expandProgress > 0.3 ? 'visible' : 'hidden'
         }}
       >
         {/* ABOUT AIDEX'26 BRIEFING SECTION */}
