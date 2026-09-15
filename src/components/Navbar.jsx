@@ -135,19 +135,10 @@ const Navbar = () => {
 
   return (
     <header
+      className="site-navbar-header"
       style={{
-        position: 'fixed',
-        top: 16,
-        left: 0,
-        right: 0,
-        zIndex: 900,
-        padding: '0 16px',
-        display: 'flex',
-        justifyContent: 'center',
-        pointerEvents: 'none',
         transform: isVisible ? 'translateY(0)' : 'translateY(-100px)',
-        opacity: isVisible ? 1 : 0,
-        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease'
+        opacity: isVisible ? 1 : 0
       }}
     >
       {/* Desktop View PillNav */}
