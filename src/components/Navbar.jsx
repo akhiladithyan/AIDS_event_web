@@ -19,11 +19,11 @@ const Navbar = () => {
           const currentScrollY = window.scrollY;
           const lastScrollY = lastScrollYRef.current;
 
-          if (currentScrollY <= 50) {
+          if (currentScrollY <= 60) {
             setIsVisible(true);
-          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 10) {
+          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 15) {
             setIsVisible(false);
-          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 10) {
+          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 25) {
             setIsVisible(true);
           }
 
