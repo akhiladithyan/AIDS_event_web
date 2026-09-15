@@ -44,14 +44,14 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
 
 
         {/* Main Title with Fuzzy Text Animation */}
-        <div style={{ margin: '0 0 -10px 0', width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div className="doomsday-title-wrap">
           <FuzzyText
             baseIntensity={0.15}
             hoverIntensity={0.5}
             fuzzRange={10}
             enableHover={true}
             color="#ffffff"
-            fontSize="clamp(3.6rem, 15vw, 7.5rem)"
+            fontSize="clamp(2rem, 11vw, 7.5rem)"
             fontWeight={900}
           >
             AIDEX'26

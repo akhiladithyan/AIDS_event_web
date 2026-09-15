@@ -132,6 +132,23 @@
   margin-bottom: 24px;
 }
 
+/* Title Wrap & Canvas Scaling */
+.doomsday-title-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 -10px 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.doomsday-title-wrap canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
 /* Main Title */
 .doomsday-title {
   font-size: clamp(3.5rem, 8vw, 7.5rem);
