@@ -21,7 +21,7 @@ export default function AboutSection() {
           <div className="about-stats-grid">
             <div className="about-stat-box">
               <div className="about-stat-val">OCT 7, 2026</div>
-              <div className="about-stat-lbl">DAY EVENT (9AM - 3PM)</div>
+              <div className="about-stat-lbl">DAY EVENT (8:30 AM - 3:30 PM)</div>
             </div>
             <div className="about-stat-box">
               <div className="about-stat-val">AI & DS</div>
