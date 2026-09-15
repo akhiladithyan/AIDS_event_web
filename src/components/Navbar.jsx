@@ -14,6 +14,12 @@ const Navbar = () => {
     let ticking = false;
 
     const handleScroll = () => {
+      // Keep navbar fixed & steady on mobile screens so header doesn't slide down on direction reversal
+      if (window.innerWidth <= 768) {
+        setIsVisible(true);
+        return;
+      }
+
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
