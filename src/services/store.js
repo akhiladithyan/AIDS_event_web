@@ -999,108 +999,105 @@ export const storeService = {
   },
 
   // 5. JUDGES & SCORES
-  getDeletedJudgeIds() {
-    try {
-      return JSON.parse(localStorage.getItem('deleted_judge_ids') || '[]');
-    } catch (e) {
-      return [];
-    }
-  },
-
-  addDeletedJudgeId(id) {
-    try {
-      const list = this.getDeletedJudgeIds();
-      if (!list.includes(id)) {
-        list.push(id);
-        localStorage.setItem('deleted_judge_ids', JSON.stringify(list));
-      }
-    } catch (e) {}
-  },
-
   async getJudges() {
-    const deletedIds = this.getDeletedJudgeIds();
-    let customUpdatedJudges = {};
-    try {
-      customUpdatedJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
-    } catch (e) {}
+    let judgesList = [];
 
-    const envUsers = this.getEnvUsers().filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.username));
-
-    let combined = [...envUsers];
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from('judges').select('*');
       if (!error && data && data.length > 0) {
-        const dbJudges = data.map(mapJudgeFromDb);
-        for (const dbj of dbJudges) {
-          if (!combined.some(u => u.username.toLowerCase() === dbj.username.toLowerCase())) {
-            combined.push(dbj);
+        // Supabase is the primary authoritative source of truth across all devices
+        judgesList = data.map(mapJudgeFromDb);
+
+        // Include any environment configured users that aren't already in Supabase
+        const envUsers = this.getEnvUsers();
+        for (const eu of envUsers) {
+          if (!judgesList.some(j => j.username.toLowerCase() === eu.username.toLowerCase() || j.id === eu.id)) {
+            judgesList.push(eu);
           }
         }
       } else if (!data || data.length === 0) {
-        combined = [...envUsers, ...INITIAL_JUDGES];
+        // First-time seed into Supabase so all devices share the exact same table
+        const seedRows = [...INITIAL_JUDGES].map(mapJudgeToDb);
+        try {
+          await supabase.from('judges').upsert(seedRows);
+        } catch (e) {
+          console.warn('First-time judge seeding notice:', e);
+        }
+        judgesList = [...INITIAL_JUDGES];
       }
     } else {
-      combined = [...envUsers, ...INITIAL_JUDGES];
+      judgesList = [...INITIAL_JUDGES];
     }
 
-    const filtered = combined.filter(j => !deletedIds.includes(j.id) && !deletedIds.includes(j.username));
-
-    // Apply custom updated overrides
-    return filtered.map(j => {
-      const override = customUpdatedJudges[j.id] || customUpdatedJudges[j.username.toLowerCase()];
-      return override ? { ...j, ...override } : j;
-    });
+    return judgesList;
   },
 
   async addJudge(judge) {
-    const newJudge = { ...judge, id: judge.id || 'jd-' + Date.now() };
-
-    try {
-      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
-      customJudges[newJudge.id] = newJudge;
-      if (newJudge.username) customJudges[newJudge.username.toLowerCase()] = newJudge;
-      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
-    } catch (e) {}
+    const newJudge = {
+      ...judge,
+      id: judge.id || 'jd-' + Date.now(),
+      accessLevels: judge.accessLevels || ['judge'],
+      assignedEvents: judge.assignedEvents || []
+    };
 
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('judges').upsert([mapJudgeToDb(newJudge)]);
-      if (error) console.error('Supabase add judge error:', error);
+      const dbPayload = mapJudgeToDb(newJudge);
+      let { error } = await supabase.from('judges').upsert([dbPayload]);
+      if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+        // Fallback for custom column structures
+        const fallback = {
+          id: newJudge.id,
+          username: newJudge.username,
+          password: newJudge.password,
+          name: newJudge.name
+        };
+        const res = await supabase.from('judges').upsert([fallback]);
+        error = res.error;
+      }
+      if (error) {
+        console.error('Supabase add judge error:', error);
+        throw new Error('Failed to save judge to Supabase: ' + error.message);
+      }
     }
 
     return newJudge;
   },
 
   async updateJudge(judge) {
-    try {
-      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
-      customJudges[judge.id] = judge;
-      if (judge.username) customJudges[judge.username.toLowerCase()] = judge;
-      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
-    } catch (e) {}
+    const updatedJudge = {
+      ...judge,
+      accessLevels: judge.accessLevels || ['judge'],
+      assignedEvents: judge.assignedEvents || []
+    };
 
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('judges').upsert([mapJudgeToDb(judge)]);
+      const dbPayload = mapJudgeToDb(updatedJudge);
+      let { error } = await supabase.from('judges').upsert([dbPayload]);
+      if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+        const fallback = {
+          id: updatedJudge.id,
+          username: updatedJudge.username,
+          password: updatedJudge.password,
+          name: updatedJudge.name
+        };
+        const res = await supabase.from('judges').upsert([fallback]);
+        error = res.error;
+      }
       if (error) {
         console.error('Supabase update judge error:', error);
+        throw new Error('Failed to update judge in Supabase: ' + error.message);
       }
     }
 
-    return judge;
+    return updatedJudge;
   },
 
   async deleteJudge(id) {
-    this.addDeletedJudgeId(id);
-
-    try {
-      const customJudges = JSON.parse(localStorage.getItem('custom_updated_judges') || '{}');
-      delete customJudges[id];
-      localStorage.setItem('custom_updated_judges', JSON.stringify(customJudges));
-    } catch (e) {}
-
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('judges').delete().eq('id', id);
+      const { error } = await supabase.from('judges').delete().or(`id.eq.${id},username.eq.${id}`);
       if (error) {
         console.error('Supabase delete judge error:', error);
+        throw new Error('Failed to delete judge from Supabase: ' + error.message);
       }
     }
   },
