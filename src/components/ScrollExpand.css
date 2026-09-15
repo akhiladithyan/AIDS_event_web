@@ -87,14 +87,14 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 0 6%;
+  padding: 0 4%;
   text-align: center;
   font-size: var(--se-title-size);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   color: #fff;
-  text-shadow: none;
+  text-shadow: 0 0 30px rgba(28, 230, 4, 0.35);
   pointer-events: none;
   will-change: opacity, transform;
 }
