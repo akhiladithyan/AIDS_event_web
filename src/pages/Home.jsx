@@ -450,10 +450,15 @@ const Home = () => {
 
                   return (
                     <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <span className="badge-purple">Event Registration</span>
-                        <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{registerModalEvent.title}</span>
+                      <div className="registration-modal-header" style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className="badge-purple" style={{ textTransform: 'uppercase' }}>Event Registration</span>
+                        </div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-muted)', marginTop: 4 }}>
+                          {registerModalEvent.title}
+                        </div>
                       </div>
+
                       <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 20 }}>
                         {isSolo ? 'Individual Participant Registration' : 'Register Your Team'}
                       </h2>
@@ -475,7 +480,7 @@ const Home = () => {
                           </div>
                         )}
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div className="form-grid-2col">
                           <div>
                             <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
                               College / Institution Name *
@@ -504,7 +509,7 @@ const Home = () => {
                           </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div className="form-grid-2col">
                           <div>
                             <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
                               {isSolo ? 'Participant Name *' : 'Team Leader Name *'}
@@ -569,8 +574,8 @@ const Home = () => {
                           </div>
                         )}
 
-                        <PillButton type="submit" variant="primary" style={{ marginTop: 12, padding: '14px', width: '100%' }}>
-                          Confirm & Generate Entry Credentials <Sparkles size={18} />
+                        <PillButton type="submit" variant="primary" style={{ marginTop: 12, padding: '14px', width: '100%', justifyContent: 'center' }}>
+                          Confirm
                         </PillButton>
                       </form>
                     </>
