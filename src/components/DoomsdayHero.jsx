@@ -40,18 +40,18 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
       </div>
 
       {/* Main Content */}
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 800 }}>
+      <div className="doomsday-hero-content" style={{ position: 'relative', zIndex: 2, maxWidth: 800 }}>
 
 
         {/* Main Title with Fuzzy Text Animation */}
-        <div style={{ margin: '0 0 -10px 0' }}>
+        <div style={{ margin: '0 0 -10px 0', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <FuzzyText
             baseIntensity={0.15}
             hoverIntensity={0.5}
             fuzzRange={10}
             enableHover={true}
             color="#ffffff"
-            fontSize="clamp(3.5rem, 8vw, 7.5rem)"
+            fontSize="clamp(3.6rem, 15vw, 7.5rem)"
             fontWeight={900}
           >
             AIDEX'26
@@ -72,12 +72,28 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
         {/* Line Divider */}
         <div className="doomsday-divider" />
 
-        {/* Presented By & Details */}
+        {/* Presented By & Details with React Bits ShinyText */}
         <div className="doomsday-presented">
-          PRESENTED BY <span>DEPT. OF AI & DATA SCIENCE</span>
+          <ShinyText
+            text="PRESENTED BY "
+            color="#ffffff"
+            shineColor="#1ce604"
+            speed={3.2}
+          />
+          <ShinyText
+            text="DEPT. OF AI & DATA SCIENCE"
+            color="#1ce604"
+            shineColor="#ffffff"
+            speed={2.5}
+          />
         </div>
         <div className="doomsday-date">
-          OCT 7, 2026 &nbsp;|&nbsp; NATIONAL TECHNICAL SYMPOSIUM
+          <ShinyText
+            text="OCT 7, 2026  |  NATIONAL TECHNICAL SYMPOSIUM"
+            color="#ffffff"
+            shineColor="#1ce604"
+            speed={3.5}
+          />
         </div>
 
         {/* Action Buttons */}

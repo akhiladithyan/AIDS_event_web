@@ -165,11 +165,12 @@
 
 /* Footer Info */
 .doomsday-presented {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 6px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  margin-bottom: 8px;
+  line-height: 1.3;
 }
 
 .doomsday-presented span {
@@ -177,14 +178,85 @@
 }
 
 .doomsday-date {
-  font-family: monospace;
-  font-size: 0.8rem;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Share Tech Mono', monospace, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+  background: rgba(6, 12, 8, 0.88);
+  border: 1.5px solid rgba(28, 230, 4, 0.5);
+  padding: 10px 22px;
+  border-radius: 100px;
+  display: inline-block;
+  margin-top: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 20px rgba(28, 230, 4, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .doomsday-actions {
   display: flex;
   gap: 16px;
   margin-top: 28px;
+}
+
+@media (max-width: 768px) {
+  .doomsday-hero {
+    padding: 80px 16px 40px 16px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .doomsday-hero-content {
+    margin-top: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .doomsday-subtitle {
+    font-size: clamp(2rem, 8.5vw, 3.5rem);
+    letter-spacing: 0.1em;
+    margin: 2px 0 16px 0;
+  }
+
+  .doomsday-hud-tl,
+  .doomsday-hud-tr {
+    display: none;
+  }
+
+  .doomsday-divider {
+    margin: 0 auto 16px auto;
+    width: 140px;
+  }
+
+  .doomsday-presented {
+    font-size: clamp(0.85rem, 3.8vw, 1.2rem);
+    letter-spacing: 0.05em;
+    line-height: 1.45;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .doomsday-date {
+    font-size: clamp(0.82rem, 3.6vw, 1.05rem);
+    letter-spacing: 0.06em;
+    padding: 8px 18px;
+    margin-top: 12px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    max-width: 96%;
+    word-break: break-word;
+  }
+
+  .doomsday-actions {
+    justify-content: center;
+    margin-top: 22px;
+  }
 }

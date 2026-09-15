@@ -45,7 +45,7 @@ function AppContent() {
 
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
         <Navbar />
-        <main style={{ flex: 1, position: 'relative', zIndex: 1, paddingTop: '100px' }}>
+        <main style={{ flex: 1, paddingTop: '100px' }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/student" element={<StudentProfile />} />
@@ -68,7 +68,7 @@ function AppContent() {
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           position: 'relative',
-          zIndex: 1,
+          zIndex: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

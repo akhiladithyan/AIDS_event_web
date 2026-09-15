@@ -1,0 +1,90 @@
+.react-bits-carousel-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  padding: 10px 0 20px 0;
+}
+
+.react-bits-carousel-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y pinch-zoom;
+}
+
+.react-bits-carousel-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.react-bits-carousel-slide {
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+  opacity: 0.45;
+  scale: 0.95;
+  transition: opacity 0.35s ease, scale 0.35s ease;
+}
+
+.react-bits-carousel-slide.active {
+  opacity: 1;
+  scale: 1;
+}
+
+.react-bits-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.react-bits-carousel-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(28, 230, 4, 0.12);
+  border: 1px solid rgba(28, 230, 4, 0.35);
+  color: #1ce604;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.react-bits-carousel-btn:hover,
+.react-bits-carousel-btn:active {
+  background: #1ce604;
+  color: #060c08;
+  box-shadow: 0 0 15px rgba(28, 230, 4, 0.5);
+  transform: scale(1.08);
+}
+
+.react-bits-carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.react-bits-carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.react-bits-carousel-dot.active {
+  width: 24px;
+  background: #1ce604;
+  box-shadow: 0 0 10px rgba(28, 230, 4, 0.6);
+}

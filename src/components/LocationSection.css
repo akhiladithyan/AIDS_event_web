@@ -3,7 +3,7 @@
   width: 100%;
   margin-top: 140px;
   margin-bottom: 140px;
-  z-index: 2;
+  z-index: 1;
 }
 
 .location-container {
@@ -144,21 +144,32 @@
 }
 
 @media (max-width: 768px) {
+  .location-section {
+    margin-top: 60px;
+    margin-bottom: 60px;
+  }
+
   .location-container {
     min-height: auto;
     display: flex;
     flex-direction: column;
+    margin-bottom: 60px;
   }
 
   .location-map-wrapper {
     position: relative;
-    height: 280px;
+    height: 260px;
   }
 
   .location-card {
     margin: 16px;
-    padding: 24px;
+    padding: 24px 20px;
     max-width: none;
+  }
+
+  .contact-info-section {
+    margin-top: 60px;
+    margin-bottom: 60px;
   }
 }
 
@@ -197,7 +208,7 @@
 /* Job Card Grid Layout Matching Reference Image */
 .contact-job-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
   gap: 24px;
 }
 

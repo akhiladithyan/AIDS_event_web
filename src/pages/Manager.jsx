@@ -30,6 +30,11 @@ const Manager = () => {
   const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [confirmError, setConfirmError] = useState('');
 
+  // Delete Team Password Confirmation Modal State
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [deletePassInput, setDeletePassInput] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
   // Batch QR Download Range Modal State
   const [showBatchQrModal, setShowBatchQrModal] = useState(false);
   const [batchStartId, setBatchStartId] = useState(1);
@@ -206,6 +211,29 @@ const Manager = () => {
       setScanMessage({ success: false, text: `Scan Error: ${err.message || 'Failed to update attendance records.'}` });
     }
     setTimeout(() => setScanMessage(null), 6000);
+  };
+
+  const handleDeleteSingleTeam = (team) => {
+    setTeamToDelete(team);
+    setDeletePassInput('');
+    setDeleteError('');
+  };
+
+  const handleConfirmDeleteTeamSubmit = async (e) => {
+    e.preventDefault();
+    if (!teamToDelete) return;
+    try {
+      await storeService.deleteTeam(teamToDelete.id, deletePassInput);
+      const name = teamToDelete.teamName;
+      const id = teamToDelete.id;
+      setTeamToDelete(null);
+      setDeletePassInput('');
+      setDeleteError('');
+      alert(`✅ Team "${name}" (${id}) deleted successfully!`);
+      await loadManagerData();
+    } catch (err) {
+      setDeleteError(err.message || 'Incorrect Manager Password!');
+    }
   };
 
   const handleManualScanSubmit = async (e) => {
@@ -955,6 +983,24 @@ Vel Tech Multi Tech Engineering College`;
                             >
                               <Edit size={14} /> Edit
                             </button>
+                            <button
+                              onClick={() => handleDeleteSingleTeam(t)}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '0.8rem',
+                                gap: 6,
+                                background: 'rgba(239, 74, 64, 0.25)',
+                                border: '1px solid rgba(239, 74, 64, 0.5)',
+                                color: '#ff8a82',
+                                borderRadius: 100,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                fontWeight: 700
+                              }}
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1344,6 +1390,79 @@ Vel Tech Multi Tech Engineering College`;
                     <button type="submit" className="btn-primary">
                       <Download size={16} /> Start Batch Download
                     </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* DELETE TEAM CONFIRMATION MODAL WITH MANAGER PASSWORD */}
+          {teamToDelete && (
+            <div className="modal-overlay" onClick={() => setTeamToDelete(null)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: 'rgba(239, 74, 64, 0.2)',
+                    border: '1px solid rgba(239, 74, 64, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Trash2 size={22} color="#ff8a82" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Delete Team</h3>
+                    <span style={{ fontSize: '0.8rem', color: '#ff8a82', fontWeight: 600 }}>Manager Password Required</span>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+                  You are about to delete team <strong style={{ color: '#fff' }}>"{teamToDelete.teamName}" ({teamToDelete.id})</strong>.
+                  <br /><br />
+                  <span style={{ color: '#ff8a82', fontWeight: 600 }}>⚠️ This action will permanently remove this team from the database.</span>
+                </p>
+
+                {deleteError && (
+                  <div style={{
+                    background: 'rgba(239, 74, 64, 0.15)',
+                    border: '1px solid rgba(239, 74, 64, 0.4)',
+                    color: '#ff8a82',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    fontSize: '0.88rem',
+                    marginBottom: 16
+                  }}>
+                    {deleteError}
+                  </div>
+                )}
+
+                <form onSubmit={handleConfirmDeleteTeamSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                      Enter Manager / Admin Password *
+                    </label>
+                    <input
+                      type="password"
+                      className="glass-input"
+                      placeholder="Enter Manager Password"
+                      value={deletePassInput}
+                      onChange={e => setDeletePassInput(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+                    <PillButton type="button" onClick={() => setTeamToDelete(null)} variant="secondary">
+                      Cancel
+                    </PillButton>
+                    <PillButton type="submit" variant="danger" style={{ background: '#ef4a40', border: 'none', color: '#fff' }}>
+                      Confirm Delete Team
+                    </PillButton>
                   </div>
                 </form>
               </div>

@@ -31,12 +31,24 @@ const Home = () => {
   const [teamName, setTeamName] = useState('');
   const [college, setCollege] = useState('');
 
-  // Always start at top of page on refresh/mount
+  // Start at top or scroll to target section if hash exists on mount
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    window.scrollTo(0, 0);
+
+    const hash = window.location.hash;
+    if (hash && (hash === '#event-cards-grid' || hash === '#contact-info-section' || hash === '#location-section')) {
+      const targetId = hash.replace('#', '');
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 400);
+    } else {
+      window.scrollTo(0, 0);
+    }
   }, []);
   const [department, setDepartment] = useState('');
   const [leaderName, setLeaderName] = useState('');

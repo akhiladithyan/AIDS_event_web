@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 import { Trophy, Award, Lock, Clock } from 'lucide-react';
 import FlowingMenu from '../components/FlowingMenu';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
+import ShinyText from '../components/ShinyText';
+import Carousel from '../components/Carousel';
 
 const Results = () => {
   const [events, setEvents] = useState([]);
@@ -114,31 +116,219 @@ const Results = () => {
     isDone: judgingLocks[evt.id]?.isCompleted
   }));
 
-  return (
-    <div style={{ maxWidth: 1080, margin: '40px auto', padding: '0 20px' }}>
-      {/* HEADER & FLOWING EVENT MENU */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          background: 'rgba(34, 197, 94, 0.15)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          color: '#22c55e',
-          padding: '6px 16px',
-          borderRadius: 100,
-          fontSize: '0.85rem',
-          fontWeight: 700,
-          marginBottom: 12
-        }}>
-          <Trophy size={16} /> AIDEX '26 EVENT WINNERS
+  const renderPrizeCard = (place) => {
+    const teamIndex = place - 1;
+    const team = rankedLeaderboard[teamIndex];
+    const countdownKey = `${selectedEventId}_${place}`;
+    const currentCountdown = countdowns[countdownKey];
+    const isPlaceRevealed = currentEventReveals[place] || false;
+
+    const colors = {
+      1: { bg: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(234, 179, 8, 0.6)', badge: '#eab308', glow: '234, 179, 8', title: '1st Place Winner', icon: Trophy },
+      2: { bg: 'linear-gradient(135deg, rgba(226, 232, 240, 0.16) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(226, 232, 240, 0.4)', badge: '#cbd5e1', glow: '203, 213, 225', title: '2nd Place Runner Up', icon: Award },
+      3: { bg: 'linear-gradient(135deg, rgba(217, 119, 6, 0.16) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(217, 119, 6, 0.4)', badge: '#d97706', glow: '217, 119, 6', title: '3rd Place Runner Up', icon: Award }
+    };
+    const cfg = colors[place];
+    const PlaceIcon = cfg.icon;
+
+    if (!team) {
+      return (
+        <div key={place} className="glass-panel" style={{ padding: 40, textAlign: 'center', opacity: 0.5, borderRadius: 28, height: '100%' }}>
+          <div style={{ fontWeight: 700, color: cfg.badge, marginBottom: 8 }}>{cfg.title}</div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No team ranked in position #{place}</p>
         </div>
-        <h1 style={{ fontSize: '2.8rem', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 12px 0' }}>
-          Official Hall of Fame & Results
+      );
+    }
+
+    return (
+      <ParticleCard
+        key={place}
+        glowColor={cfg.glow}
+        particleCount={12}
+        enableTilt={true}
+        clickEffect={true}
+        enableMagnetism={false}
+        style={{
+          background: cfg.bg,
+          border: `1.5px solid ${cfg.border}`,
+          borderRadius: 24,
+          padding: '56px 20px 32px 20px',
+          position: 'relative',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          justify: 'space-between',
+          minHeight: 360,
+          boxShadow: isPlaceRevealed && place === 1 ? '0 0 40px rgba(234, 179, 8, 0.3)' : 'none',
+          transform: 'none',
+          zIndex: place === 1 ? 2 : 1
+        }}
+      >
+        {/* Place Badge Header */}
+        <div style={{
+          position: 'absolute',
+          top: 14,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: cfg.badge,
+          color: '#090514',
+          fontWeight: 900,
+          fontSize: 'clamp(0.7rem, 2.8vw, 0.82rem)',
+          padding: '5px 14px',
+          borderRadius: 100,
+          letterSpacing: '0.05em',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+          whiteSpace: 'nowrap',
+          maxWidth: '90%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          zIndex: 20
+        }}>
+          {cfg.title.toUpperCase()}
+        </div>
+
+        {/* CARD CONTENT STATES */}
+        {currentCountdown !== undefined ? (
+          /* STATE A: LIVE 3-SECOND COUNTDOWN FOR THIS PLACE */
+          <div style={{ padding: '40px 12px' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: cfg.badge, marginBottom: 8 }}>
+              REVEALING {cfg.title.toUpperCase()} IN
+            </div>
+            <div style={{
+              fontSize: '4.5rem',
+              fontWeight: 900,
+              color: cfg.badge,
+              lineHeight: 1,
+              marginBottom: 12
+            }}>
+              {currentCountdown}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+              Get ready for the announcement...
+            </div>
+          </div>
+        ) : !isPlaceRevealed ? (
+          /* STATE B: SEALED PLACE */
+          <div style={{ padding: '32px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 260 }}>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.4)',
+              border: `1px solid ${cfg.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+              boxShadow: `0 0 20px ${cfg.border}`
+            }}>
+              <Lock size={30} color={cfg.badge} />
+            </div>
+
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
+              {cfg.title}
+            </h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0, maxWidth: 240, lineHeight: 1.5 }}>
+              🔒 Sealed & awaiting live reveal on stage by event judges.
+            </p>
+          </div>
+        ) : (
+          /* STATE C: REVEALED WINNER DETAILS */
+          <>
+            <div style={{ marginTop: 8 }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.35)',
+                border: `1px solid ${cfg.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto'
+              }}>
+                <PlaceIcon size={34} color={cfg.badge} />
+              </div>
+
+              <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ffffff', marginBottom: 4 }}>
+                {team.teamName}
+              </h3>
+              <div style={{ color: cfg.badge, fontWeight: 700, fontSize: '0.95rem', marginBottom: 14 }}>
+                {team.id} | Team #{team.teamNo || 1}
+              </div>
+
+              {team.college && (
+                <div style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.9rem', marginBottom: 18 }}>
+                  {team.college}
+                </div>
+              )}
+
+              {/* Leader & Members list */}
+              <div style={{
+                background: 'rgba(0, 0, 0, 0.35)',
+                padding: '16px 18px',
+                borderRadius: 16,
+                textAlign: 'left',
+                fontSize: '0.9rem',
+                marginBottom: 24
+              }}>
+                <div style={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)', marginBottom: 6 }}>
+                  Leader: {team.leaderName}
+                </div>
+                {team.members && team.members.length > 1 && (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.84rem', lineHeight: 1.4 }}>
+                    Members: {team.members.filter(m => m.role !== 'Leader').map(m => m.name).join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {(() => {
+              const eventCriteria = currentEvent?.criteria || [
+                { id: 'crit-1', label: 'Innovation & Originality', maxPoints: 10 },
+                { id: 'crit-2', label: 'Technical Execution', maxPoints: 10 },
+                { id: 'crit-3', label: 'Presentation & Demo', maxPoints: 10 },
+                { id: 'crit-4', label: 'Q&A Response', maxPoints: 10 }
+              ];
+              const singleJudgeMax = eventCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
+              const assignedJudgesCount = judges.filter(j => (j.assignedEvents || []).includes(selectedEventId)).length;
+              const judgeMultiplier = Math.max(1, assignedJudgesCount, team.judgeCount || 0);
+              const totalEventMaxScore = singleJudgeMax * judgeMultiplier;
+
+              return (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  padding: '14px 18px',
+                  borderRadius: 14,
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Final Total Score</span>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: cfg.badge }}>
+                    {team.totalScore} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ {totalEventMaxScore} pts</span>
+                  </span>
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </ParticleCard>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: 1080, margin: '20px auto', padding: '0 12px' }}>
+      {/* HEADER & FLOWING EVENT MENU */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <h1 style={{ fontSize: 'clamp(1.8rem, 6vw, 4.8rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 24px 0' }}>
+          <ShinyText
+            text="AIDEX 2026 RESULTS"
+            color="#ffffff"
+            shineColor="#1ce604"
+            speed={3}
+          />
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: 620, margin: '0 auto 28px auto' }}>
-          Scores are locked by official judges. Select an event from the menu below to view the podium!
-        </p>
 
         {/* FLOWING MENU COMPONENT */}
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
@@ -158,241 +348,67 @@ const Results = () => {
         <div>
           {!isJudgingCompleted ? (
             /* STATE 1: JUDGING NOT YET CLOSED */
-            <div className="glass-panel" style={{ padding: '60px 20px', textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
+            <div className="glass-panel" style={{ padding: '40px 16px', textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
               <div style={{
-                width: 72,
-                height: 72,
+                width: 64,
+                height: 64,
                 borderRadius: '50%',
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 20px auto'
+                margin: '0 auto 16px auto'
               }}>
-                <Clock size={36} color="#a395f3" />
+                <Clock size={32} color="#a395f3" />
               </div>
-              <h3 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: 10 }}>Live Judging in Progress</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 0 }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 8 }}>Live Judging in Progress</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: 0 }}>
                 Evaluations for <strong style={{ color: '#fff' }}>{currentEvent.title}</strong> are currently ongoing by event judges. Standings will be ready and locked once all assigned judges complete and finalize their marks!
               </p>
             </div>
           ) : rankedLeaderboard.length === 0 ? (
-            <div className="glass-panel" style={{ padding: 40, textAlign: 'center' }}>
+            <div className="glass-panel" style={{ padding: 30, textAlign: 'center' }}>
               <p style={{ color: 'var(--text-muted)' }}>No teams evaluated for this event.</p>
             </div>
           ) : (
             /* STATE 2: JUDGING COMPLETED — MAGIC BENTO PODIUM CARDS */
             <div>
-              <div style={{ textAlign: 'center', marginBottom: 36 }}>
-                <span className="badge-purple" style={{ fontSize: '0.9rem', padding: '6px 16px' }}>
+              <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 8px' }}>
+                <span 
+                  className="badge-purple" 
+                  style={{ 
+                    fontSize: 'clamp(0.72rem, 3.2vw, 0.88rem)', 
+                    padding: '6px 14px', 
+                    maxWidth: '100%', 
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
                   ✨ {currentEvent.title} Podium ✨
                 </span>
-                <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginTop: 8 }}>
+                <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', fontWeight: 800, marginTop: 10 }}>
                   Event Winners Podium
                 </h2>
               </div>
 
-              {/* MAGIC BENTO CONTAINER WITH SPOTLIGHT & PARTICLES */}
-              <MagicBento glowColor="234, 179, 8" gridTemplateColumns="repeat(3, 1fr)">
-                {[1, 2, 3].map(place => {
-                  const teamIndex = place - 1;
-                  const team = rankedLeaderboard[teamIndex];
-                  const countdownKey = `${selectedEventId}_${place}`;
-                  const currentCountdown = countdowns[countdownKey];
-                  const isPlaceRevealed = currentEventReveals[place] || false;
+              {/* DESKTOP VIEW: MAGIC BENTO GRID */}
+              <div className="desktop-only">
+                <MagicBento glowColor="234, 179, 8" gridTemplateColumns="repeat(3, 1fr)">
+                  {[1, 2, 3].map(place => renderPrizeCard(place))}
+                </MagicBento>
+              </div>
 
-                  const colors = {
-                    1: { bg: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(234, 179, 8, 0.6)', badge: '#eab308', glow: '234, 179, 8', title: '1st Place Winner', icon: Trophy },
-                    2: { bg: 'linear-gradient(135deg, rgba(226, 232, 240, 0.16) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(226, 232, 240, 0.4)', badge: '#cbd5e1', glow: '203, 213, 225', title: '2nd Place Runner Up', icon: Award },
-                    3: { bg: 'linear-gradient(135deg, rgba(217, 119, 6, 0.16) 0%, rgba(18, 15, 23, 0.95) 100%)', border: 'rgba(217, 119, 6, 0.4)', badge: '#d97706', glow: '217, 119, 6', title: '3rd Place Runner Up', icon: Award }
-                  };
-                  const cfg = colors[place];
-                  const PlaceIcon = cfg.icon;
-
-                  if (!team) {
-                    return (
-                      <div key={place} className="glass-panel" style={{ padding: 40, textAlign: 'center', opacity: 0.5, borderRadius: 28 }}>
-                        <div style={{ fontWeight: 700, color: cfg.badge, marginBottom: 8 }}>{cfg.title}</div>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No team ranked in position #{place}</p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <ParticleCard
-                      key={place}
-                      glowColor={cfg.glow}
-                      particleCount={12}
-                      enableTilt={true}
-                      clickEffect={true}
-                      enableMagnetism={false}
-                      style={{
-                        background: cfg.bg,
-                        border: `1.5px solid ${cfg.border}`,
-                        borderRadius: 24,
-                        padding: '56px 24px 32px 24px',
-                        position: 'relative',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justify: 'space-between',
-                        minHeight: 360,
-                        boxShadow: isPlaceRevealed && place === 1 ? '0 0 40px rgba(234, 179, 8, 0.3)' : 'none',
-                        transform: isPlaceRevealed && place === 1 ? 'scale(1.02)' : 'none',
-                        zIndex: place === 1 ? 2 : 1
-                      }}
-                    >
-                      {/* Place Badge Header */}
-                      <div style={{
-                        position: 'absolute',
-                        top: 16,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: cfg.badge,
-                        color: '#090514',
-                        fontWeight: 900,
-                        fontSize: '0.82rem',
-                        padding: '6px 20px',
-                        borderRadius: 100,
-                        letterSpacing: '0.05em',
-                        boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
-                        whiteSpace: 'nowrap',
-                        zIndex: 20
-                      }}>
-                        {cfg.title.toUpperCase()}
-                      </div>
-
-                        {/* CARD CONTENT STATES */}
-                        {currentCountdown !== undefined ? (
-                          /* STATE A: LIVE 3-SECOND COUNTDOWN FOR THIS PLACE */
-                          <div style={{ padding: '40px 12px' }}>
-                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: cfg.badge, marginBottom: 8 }}>
-                              REVEALING {cfg.title.toUpperCase()} IN
-                            </div>
-                            <div style={{
-                              fontSize: '4.5rem',
-                              fontWeight: 900,
-                              color: cfg.badge,
-                              lineHeight: 1,
-                              marginBottom: 12
-                            }}>
-                              {currentCountdown}
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                              Get ready for the announcement...
-                            </div>
-                          </div>
-                        ) : !isPlaceRevealed ? (
-                          /* STATE B: SEALED PLACE */
-                          <div style={{ padding: '32px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 260 }}>
-                            <div style={{
-                              width: 64,
-                              height: 64,
-                              borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.4)',
-                              border: `1px solid ${cfg.border}`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginBottom: 16,
-                              boxShadow: `0 0 20px ${cfg.border}`
-                            }}>
-                              <Lock size={30} color={cfg.badge} />
-                            </div>
-
-                            <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
-                              {cfg.title}
-                            </h4>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0, maxWidth: 240, lineHeight: 1.5 }}>
-                              🔒 Sealed & awaiting live reveal on stage by event judges.
-                            </p>
-                          </div>
-                        ) : (
-                          /* STATE C: REVEALED WINNER DETAILS */
-                          <>
-                            <div style={{ marginTop: 8 }}>
-                              <div style={{
-                                width: 64,
-                                height: 64,
-                                borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.35)',
-                                border: `1px solid ${cfg.border}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                margin: '0 auto 16px auto'
-                              }}>
-                                <PlaceIcon size={34} color={cfg.badge} />
-                              </div>
-
-                              <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ffffff', marginBottom: 4 }}>
-                                {team.teamName}
-                              </h3>
-                              <div style={{ color: cfg.badge, fontWeight: 700, fontSize: '0.95rem', marginBottom: 14 }}>
-                                {team.id} | Team #{team.teamNo || 1}
-                              </div>
-
-                              {team.college && (
-                                <div style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.9rem', marginBottom: 18 }}>
-                                  {team.college}
-                                </div>
-                              )}
-
-                              {/* Leader & Members list */}
-                              <div style={{
-                                background: 'rgba(0, 0, 0, 0.35)',
-                                padding: '16px 18px',
-                                borderRadius: 16,
-                                textAlign: 'left',
-                                fontSize: '0.9rem',
-                                marginBottom: 24
-                              }}>
-                                <div style={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)', marginBottom: 6 }}>
-                                  Leader: {team.leaderName}
-                                </div>
-                                {team.members && team.members.length > 1 && (
-                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.84rem', lineHeight: 1.4 }}>
-                                    Members: {team.members.filter(m => m.role !== 'Leader').map(m => m.name).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                             {(() => {
-                               const eventCriteria = currentEvent?.criteria || [
-                                 { id: 'crit-1', label: 'Innovation & Originality', maxPoints: 10 },
-                                 { id: 'crit-2', label: 'Technical Execution', maxPoints: 10 },
-                                 { id: 'crit-3', label: 'Presentation & Demo', maxPoints: 10 },
-                                 { id: 'crit-4', label: 'Q&A Response', maxPoints: 10 }
-                               ];
-                               const singleJudgeMax = eventCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
-                               const assignedJudgesCount = judges.filter(j => (j.assignedEvents || []).includes(selectedEventId)).length;
-                               const judgeMultiplier = Math.max(1, assignedJudgesCount, team.judgeCount || 0);
-                               const totalEventMaxScore = singleJudgeMax * judgeMultiplier;
-
-                               return (
-                                 <div style={{
-                                   background: 'rgba(255, 255, 255, 0.08)',
-                                   padding: '14px 18px',
-                                   borderRadius: 14,
-                                   display: 'flex',
-                                   justify: 'space-between',
-                                   alignItems: 'center'
-                                 }}>
-                                   <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Final Total Score</span>
-                                   <span style={{ fontSize: '1.45rem', fontWeight: 900, color: cfg.badge }}>
-                                     {team.totalScore} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>/ {totalEventMaxScore} pts</span>
-                                   </span>
-                                 </div>
-                               );
-                             })()}
-                          </>
-                        )}
-                      </ParticleCard>
-                    );
-                  })}
-              </MagicBento>
+              {/* MOBILE VIEW: CAROUSEL SWIPER */}
+              <div className="mobile-only">
+                <Carousel initialIndex={0}>
+                  {[1, 2, 3].map(place => renderPrizeCard(place))}
+                </Carousel>
+              </div>
             </div>
           )}
         </div>

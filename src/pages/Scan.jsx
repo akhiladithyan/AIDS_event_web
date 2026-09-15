@@ -232,8 +232,11 @@ const Scan = () => {
       ) : (
         /* LIVE SCANNER DASHBOARD */
         <div>
-          <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
-            <div style={{ position: 'absolute', right: 0, top: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 28, gap: 10, position: 'relative' }}>
+            <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <span className="badge-purple" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>
+                📷 Mobile & Web Scanner Portal
+              </span>
               <PillButton
                 onClick={() => {
                   setIsAuthenticated(false);
@@ -246,37 +249,34 @@ const Scan = () => {
                 <Lock size={14} /> Lock Scanner
               </PillButton>
             </div>
-            <span className="badge-purple" style={{ fontSize: '0.88rem', padding: '6px 16px', marginBottom: 10, display: 'inline-block' }}>
-              📷 Mobile & Web Scanner Portal
-            </span>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 10px 0' }}>
+            <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: 0 }}>
               Live Event QR Check-In
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.98rem', maxWidth: 540, margin: '0 auto' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: 540, margin: 0 }}>
               Select a stage below (Attendance, Lunch, or Snacks) then scan student/team QR codes live!
             </p>
           </div>
 
           {/* STAGE SELECTOR TABS */}
-          <div className="glass-panel" style={{ padding: 12, marginBottom: 24, display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <div className="glass-panel" style={{ padding: 12, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
             <PillButton
               onClick={() => setScanMode('attendance')}
               variant={scanMode === 'attendance' ? 'primary' : 'secondary'}
-              style={{ flex: 1, padding: '12px', fontSize: '0.92rem' }}
+              style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
             >
               🎟️ Event Attendance
             </PillButton>
             <PillButton
               onClick={() => setScanMode('lunch')}
               variant={scanMode === 'lunch' ? 'primary' : 'secondary'}
-              style={{ flex: 1, padding: '12px', fontSize: '0.92rem' }}
+              style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
             >
               🍱 Lunch Pass
             </PillButton>
             <PillButton
               onClick={() => setScanMode('snacks')}
               variant={scanMode === 'snacks' ? 'primary' : 'secondary'}
-              style={{ flex: 1, padding: '12px', fontSize: '0.92rem' }}
+              style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
             >
               ☕ Snacks Pass
             </PillButton>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, ExternalLink } from 'lucide-react';
 import PillButton from './PillButton';
 import BorderGlow from './BorderGlow';
+import ShinyText from './ShinyText';
 import { storeService } from '../services/store';
 import './LocationSection.css';
 
@@ -43,12 +44,13 @@ export default function LocationSection() {
             <div className="location-badge">
               <MapPin size={14} /> VENUE DIRECTION
             </div>
-            <h2 className="location-title">Where to Find Us</h2>
+            <h2 className="location-title">
+              <ShinyText text="College Location" color="#ffffff" shineColor="#1ce604" speed={3} />
+            </h2>
             <div className="location-accent-bar" />
           </div>
 
           <p className="location-subtitle">
-            Department of Artificial Intelligence & Data Science <br />
             <strong>Vel Tech Multi Tech Dr. Rangarajan Dr. Sakunthala Engineering College</strong>
           </p>
 
@@ -126,14 +128,42 @@ export default function LocationSection() {
                     <span className="contact-phone-sub">{c.email || 'Direct Contact'}</span>
                   </div>
 
-                  <PillButton
-                    as="a"
-                    href={`tel:${c.phone}`}
-                    variant="primary"
-                    style={{ padding: '12px 24px', fontSize: '0.9rem' }}
-                  >
-                    Call Now
-                  </PillButton>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* WhatsApp Chat Button */}
+                    <PillButton
+                      as="a"
+                      href={c.whatsappUrl || "https://wa.me/qr/4HRMHEE5TIE6F1"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="primary"
+                      style={{
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 100,
+                        backgroundColor: '#25D366',
+                        borderColor: '#25D366',
+                        boxShadow: '0 4px 15px rgba(37, 211, 102, 0.4)'
+                      }}
+                      title="Chat on WhatsApp"
+                    >
+                      <img
+                        src="/images/whatsapp-icon.png"
+                        alt="WhatsApp"
+                        style={{ width: 22, height: 22, objectFit: 'contain' }}
+                      />
+                    </PillButton>
+
+                    <PillButton
+                      as="a"
+                      href={`tel:${c.phone}`}
+                      variant="primary"
+                      style={{ padding: '12px 22px', fontSize: '0.9rem' }}
+                    >
+                      Call Now
+                    </PillButton>
+                  </div>
                 </div>
               </div>
             </BorderGlow>

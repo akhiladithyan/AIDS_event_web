@@ -13,12 +13,16 @@ const StudentProfile = () => {
   const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
-    // Check if logged in this session (sessionStorage clears on tab close)
-    const saved = sessionStorage.getItem('neura_student_session');
+    // Check persistent storage for student login credentials
+    const saved = localStorage.getItem('neura_student_session') || sessionStorage.getItem('neura_student_session');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        loadStudentProfile(parsed.userId, parsed.password);
+        if (parsed?.userId && parsed?.password) {
+          setUserId(parsed.userId);
+          setPassword(parsed.password);
+          loadStudentProfile(parsed.userId, parsed.password);
+        }
       } catch (e) {}
     }
   }, []);
@@ -56,8 +60,10 @@ const StudentProfile = () => {
         console.error('Failed to load attendance info:', e);
       }
 
-      // Store session (sessionStorage: cleared on tab close, no cross-account bleed)
-      sessionStorage.setItem('neura_student_session', JSON.stringify({ userId: foundMember.userId, password: foundMember.password }));
+      // Store persistent session in localStorage (stays logged in permanently on device until explicit logout)
+      const sessionData = JSON.stringify({ userId: foundMember.userId, password: foundMember.password });
+      localStorage.setItem('neura_student_session', sessionData);
+      sessionStorage.setItem('neura_student_session', sessionData);
 
       // Generate high quality QR code
       try {
@@ -78,6 +84,7 @@ const StudentProfile = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('neura_student_session');
     sessionStorage.removeItem('neura_student_session');
     setLoggedUser(null);
     setTeamInfo(null);
@@ -293,7 +300,7 @@ const StudentProfile = () => {
               pointerEvents: 'none'
             }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 32, alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 32, alignItems: 'center' }}>
               {/* Profile Details */}
               <div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>

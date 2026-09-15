@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Cpu, Sparkles } from 'lucide-react';
 import PillNav from './PillNav';
+import CardNav from './CardNav';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -34,24 +36,41 @@ const Navbar = () => {
     if (location.pathname === '/') {
       e.preventDefault();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      e.preventDefault();
+      navigate('/');
     }
   };
 
   const handleEventsClick = (e) => {
+    e.preventDefault();
     if (location.pathname === '/') {
-      e.preventDefault();
       const el = document.getElementById('event-cards-grid');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
+    } else {
+      navigate('/#event-cards-grid');
+      setTimeout(() => {
+        const el = document.getElementById('event-cards-grid');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
     }
   };
 
   const handleContactClick = (e) => {
     e.preventDefault();
-    const el = document.getElementById('contact-info-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+    if (location.pathname === '/') {
+      const el = document.getElementById('contact-info-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      navigate('/#contact-info-section');
+      setTimeout(() => {
+        const el = document.getElementById('contact-info-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
     }
   };
 
@@ -110,7 +129,7 @@ const Navbar = () => {
         left: 0,
         right: 0,
         zIndex: 900,
-        padding: '0 20px',
+        padding: '0 16px',
         display: 'flex',
         justifyContent: 'center',
         pointerEvents: 'none',
@@ -119,16 +138,30 @@ const Navbar = () => {
         transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease'
       }}
     >
-      <div style={{ pointerEvents: 'auto' }}>
+      {/* Desktop View PillNav */}
+      <div className="desktop-only" style={{ pointerEvents: 'auto' }}>
         <PillNav
           logoComponent={brandLogoComponent}
           items={navItems}
           activeHref={location.pathname}
-          baseColor="rgba(18, 12, 38, 0.85)"
+          baseColor="rgba(10, 18, 12, 0.85)"
           pillColor="rgba(255, 255, 255, 0.08)"
           pillTextColor="rgba(255, 255, 255, 0.85)"
           hoveredPillTextColor="#ffffff"
           initialLoadAnimation={false}
+        />
+      </div>
+
+      {/* Phone View React Bits CardNav */}
+      <div className="mobile-only" style={{ pointerEvents: 'auto', width: '100%', maxWidth: 480 }}>
+        <CardNav
+          logoComponent={brandLogoComponent}
+          items={navItems}
+          activeHref={location.pathname}
+          baseColor="rgba(10, 18, 12, 0.92)"
+          menuColor="#1ce604"
+          buttonBgColor="#1ce604"
+          buttonTextColor="#060c08"
         />
       </div>
     </header>

@@ -433,7 +433,7 @@ const MagicBento = ({
         ref={gridRef}
         style={{
           display: 'grid',
-          gridTemplateColumns: gridTemplateColumns || 'repeat(auto-fill, minmax(340px, 1fr))',
+          gridTemplateColumns: gridTemplateColumns || 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
           gap: 24
         }}
       >

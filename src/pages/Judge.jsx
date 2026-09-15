@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import confetti from 'canvas-confetti';
-import { Award, Trophy, Lock, CheckCircle, Save, Star, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import { Award, Trophy, Lock, CheckCircle, Save, Star, ShieldAlert, Sparkles, UserCheck, Edit } from 'lucide-react';
 
 const Judge = () => {
   const [judgeUser, setJudgeUser] = useState('');
@@ -22,6 +22,11 @@ const Judge = () => {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [criteriaScores, setCriteriaScores] = useState({});
   const [feedbackText, setFeedbackText] = useState('');
+
+  // Judge Lock Password Verification Modal
+  const [showJudgeLockModal, setShowJudgeLockModal] = useState(false);
+  const [judgeLockPassInput, setJudgeLockPassInput] = useState('');
+  const [judgeLockError, setJudgeLockError] = useState('');
 
   // Manager Lock Verification Modal
   const [showLockModal, setShowLockModal] = useState(false);
@@ -121,16 +126,24 @@ const Judge = () => {
     setSelectedTeam(null);
   };
 
-  const handleLockMyJudging = async () => {
+  const handleLockMyJudging = async (e) => {
+    if (e) e.preventDefault();
     if (!currentJudge || !selectedEventId) return;
-    if (confirm(`Are you sure you want to finalize & lock your judging for "${selectedEventObj?.title}"?\n\nOnce locked, your scores will be frozen for result calculation.`)) {
-      try {
-        await storeService.lockJudgeForEvent(selectedEventId, currentJudge.id);
-        await loadJudgeData();
-        confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } });
-      } catch (err) {
-        alert(err.message || "Failed to lock judging.");
-      }
+
+    if (judgeLockPassInput !== currentJudge.password) {
+      setJudgeLockError('Incorrect Judge Password!');
+      return;
+    }
+
+    try {
+      await storeService.lockJudgeForEvent(selectedEventId, currentJudge.id);
+      setShowJudgeLockModal(false);
+      setJudgeLockPassInput('');
+      setJudgeLockError('');
+      await loadJudgeData();
+      confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } });
+    } catch (err) {
+      setJudgeLockError(err.message || "Failed to lock judging.");
     }
   };
 
@@ -182,10 +195,10 @@ const Judge = () => {
   const lockedAssignedCount = assignedJudgesForSelectedEvent.filter(j => Boolean(judgeLocksMap[j.id] || judgeLocksMap[j.username])).length;
 
   return (
-    <div style={{ maxWidth: 1180, margin: '40px auto', padding: '0 20px' }}>
+    <div className="judge-container">
       {!currentJudge ? (
         /* JUDGE LOGIN PORTAL */
-        <div className="glass-panel" style={{ maxWidth: 440, margin: '60px auto', padding: 36, textAlign: 'center' }}>
+        <div className="glass-panel judge-login-card">
           <div style={{
             width: 56,
             height: 56,
@@ -245,16 +258,16 @@ const Judge = () => {
       ) : (
         /* JUDGING WORKSPACE */
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <div className="judge-header">
             <div>
               <span className="badge-coral" style={{ marginBottom: 6, display: 'inline-block' }}>
                 Evaluator: {currentJudge.name}
               </span>
-              <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Live Judging Console</h2>
+              <h2 className="judge-header-title" style={{ fontSize: '2.2rem', fontWeight: 800 }}>Live Judging Console</h2>
             </div>
 
             {/* Event Selector & Finalize Lock Button */}
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="judge-controls">
               <select
                 className="glass-input"
                 style={{ width: 240 }}
@@ -272,7 +285,11 @@ const Judge = () => {
 
               {!currentEventLock && !currentJudgeHasLocked ? (
                 <button
-                  onClick={handleLockMyJudging}
+                  onClick={() => {
+                    setJudgeLockPassInput('');
+                    setJudgeLockError('');
+                    setShowJudgeLockModal(true);
+                  }}
                   className="btn-primary"
                   style={{ whiteSpace: 'nowrap', background: '#d97706', border: 'none' }}
                 >
@@ -292,17 +309,7 @@ const Judge = () => {
 
           {/* ASSIGNED JUDGES LOCK STATUS BANNER */}
           {assignedJudgesForSelectedEvent.length > 0 && (
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 14,
-              padding: '10px 18px',
-              marginBottom: 24,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '0.86rem'
-            }}>
+            <div className="judge-progress-banner">
               <div>
                 <strong>Assigned Judges Lock Progress ({lockedAssignedCount} / {assignedJudgesForSelectedEvent.length} Locked):</strong>
                 <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>
@@ -318,9 +325,9 @@ const Judge = () => {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+          <div className="judge-grid">
             {/* LEFT COLUMN: PRESENT TEAMS LIST */}
-            <div className="glass-panel" style={{ padding: 24 }}>
+            <div className="glass-panel judge-panel-padding" style={{ padding: 24 }}>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: 4 }}>
                 Present Teams Eligible for Judging
               </h3>
@@ -344,15 +351,11 @@ const Judge = () => {
                       <div
                         key={t.id}
                         onClick={() => !currentEventLock && !currentJudgeHasLocked && handleSelectTeamForScoring(t)}
-                        className="glass-card"
+                        className="glass-card judge-team-card"
                         style={{
-                          padding: 18,
                           cursor: (currentEventLock || currentJudgeHasLocked) ? 'default' : 'pointer',
                           borderColor: selectedTeam?.id === t.id ? '#ef4a40' : 'rgba(255,255,255,0.1)',
-                          background: selectedTeam?.id === t.id ? 'rgba(239, 74, 64, 0.15)' : 'rgba(255,255,255,0.04)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                          background: selectedTeam?.id === t.id ? 'rgba(239, 74, 64, 0.15)' : 'rgba(255,255,255,0.04)'
                         }}
                       >
                         <div>
@@ -370,7 +373,7 @@ const Judge = () => {
                               </div>
                             </div>
                           ) : (
-                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 8 }}>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
                               Pending Evaluation
                             </span>
                           )}
@@ -393,8 +396,8 @@ const Judge = () => {
                   const totalMaxPoints = activeCriteria.reduce((sum, c) => sum + Number(c.maxPoints || 10), 0);
 
                   return (
-                    <div className="glass-panel" style={{ padding: 28 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div className="glass-panel judge-panel-padding" style={{ padding: 28 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
                         <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4a40', margin: 0 }}>
                           Evaluate: {selectedTeam.teamName}
                         </h3>
@@ -427,7 +430,7 @@ const Judge = () => {
                                 onChange={e => {
                                   setCriteriaScores({ ...criteriaScores, [crit.id]: Number(e.target.value) });
                                 }}
-                                style={{ width: '100%', accentColor: '#22c55e' }}
+                                style={{ width: '100%', accentColor: '#22c55e', cursor: 'pointer', height: 24 }}
                               />
                             </div>
                           );
@@ -444,9 +447,9 @@ const Judge = () => {
                           />
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 10 }}>
-                          <button type="button" onClick={() => setSelectedTeam(null)} className="btn-secondary">Close</button>
-                          <button type="submit" className="btn-primary">
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 10, flexWrap: 'wrap' }}>
+                          <button type="button" onClick={() => setSelectedTeam(null)} className="btn-secondary" style={{ flex: '1 1 auto', minWidth: 100 }}>Close</button>
+                          <button type="submit" className="btn-primary" style={{ flex: '2 1 auto', minWidth: 180 }}>
                             <Save size={16} /> {hasExistingScore ? 'Update Score' : 'Save Score'} ({totalFormScore} / {totalMaxPoints} pts)
                           </button>
                         </div>
@@ -456,7 +459,7 @@ const Judge = () => {
                 })()
               ) : (
                 /* LIVE EVENT LEADERBOARD */
-                <div className="glass-panel" style={{ padding: 28 }}>
+                <div className="glass-panel judge-panel-padding" style={{ padding: 28 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, color: '#ef4a40' }}>
                     <Trophy size={20} />
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>Live Event Leaderboard</h3>
@@ -469,12 +472,8 @@ const Judge = () => {
                     {leaderboard.map((item, rank) => (
                       <div
                         key={item.id}
-                        className="glass-card"
+                        className="glass-card judge-leaderboard-card"
                         style={{
-                          padding: 16,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
                           borderLeft: rank === 0 ? '4px solid #ef4a40' : rank === 1 ? '4px solid #a395f3' : '1px solid rgba(255,255,255,0.1)'
                         }}
                       >
@@ -488,7 +487,8 @@ const Judge = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontWeight: 800,
-                            fontSize: '0.9rem'
+                            fontSize: '0.9rem',
+                            flexShrink: 0
                           }}>
                             {rank + 1}
                           </div>
@@ -538,7 +538,7 @@ const Judge = () => {
                         Click a button to broadcast & reveal that place on the public Results page live with a 3-second countdown!
                       </p>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                         {[3, 2, 1].map(place => {
                           const isRevealed = judgingLocks[selectedEventId]?.revealedPlaces?.[place];
                           const label = place === 1 ? '1st Place' : place === 2 ? '2nd Place' : '3rd Place';
@@ -590,6 +590,62 @@ const Judge = () => {
               )}
             </div>
           </div>
+
+          {/* JUDGE PASSWORD VERIFICATION LOCK MODAL */}
+          {showJudgeLockModal && (
+            <div className="modal-overlay" onClick={() => setShowJudgeLockModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460, textAlign: 'center' }}>
+                <div style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: '50%',
+                  background: 'rgba(217, 119, 6, 0.2)',
+                  border: '1px solid rgba(217, 119, 6, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px auto'
+                }}>
+                  <Lock size={28} color="#f59e0b" />
+                </div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Confirm Judging Lock</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: 4, marginBottom: 16 }}>
+                  Enter your judge password (<strong>{currentJudge.name}</strong>) to lock and freeze your evaluation for <strong>{selectedEventObj?.title}</strong>.
+                </p>
+
+                {judgeLockError && (
+                  <div style={{
+                    background: 'rgba(239, 74, 64, 0.15)',
+                    border: '1px solid rgba(239, 74, 64, 0.4)',
+                    color: '#ff8a82',
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    fontSize: '0.85rem',
+                    marginBottom: 14
+                  }}>
+                    {judgeLockError}
+                  </div>
+                )}
+
+                <form onSubmit={handleLockMyJudging} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <input
+                    type="password"
+                    className="glass-input"
+                    placeholder="Enter Your Judge Password"
+                    value={judgeLockPassInput}
+                    onChange={e => setJudgeLockPassInput(e.target.value)}
+                    required
+                    autoFocus
+                  />
+
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                    <button type="button" onClick={() => setShowJudgeLockModal(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                    <button type="submit" className="btn-primary" style={{ flex: 1, background: '#d97706', border: 'none' }}>Verify & Lock</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* MANAGER VERIFICATION LOCK MODAL */}
           {showLockModal && (

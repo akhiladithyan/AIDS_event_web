@@ -35,6 +35,14 @@ const Pass = () => {
   const [newAdminPass, setNewAdminPass] = useState('');
   const [newManagerPass, setNewManagerPass] = useState('');
 
+  const [teams, setTeams] = useState([]);
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+
+  // Delete Team Password Confirmation Modal State
+  const [teamToDelete, setTeamToDelete] = useState(null);
+  const [deletePassInput, setDeletePassInput] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
   useEffect(() => {
     // Require strict re-authentication on every page visit for /pass
     setIsAuthenticated(false);
@@ -44,9 +52,11 @@ const Pass = () => {
     const jdgs = await storeService.getJudges();
     const evts = await storeService.getEvents();
     const pass = await storeService.getPasswords();
+    const tms = await storeService.getTeams();
     setJudges(jdgs);
     setEvents(evts);
     setSystemPasswords(pass);
+    setTeams(tms || []);
     setNewAdminPass(pass.admin);
     setNewManagerPass(pass.manager);
 
@@ -55,6 +65,29 @@ const Pass = () => {
       setSelectedCriteriaEventId(activeEvtId);
       const activeEvt = evts.find(e => e.id === activeEvtId) || evts[0];
       setEditingCriteriaList(activeEvt?.criteria || []);
+    }
+  };
+
+  const handleDeleteSingleTeam = (team) => {
+    setTeamToDelete(team);
+    setDeletePassInput('');
+    setDeleteError('');
+  };
+
+  const handleConfirmDeleteTeamSubmit = async (e) => {
+    e.preventDefault();
+    if (!teamToDelete) return;
+    try {
+      await storeService.deleteTeam(teamToDelete.id, deletePassInput);
+      const name = teamToDelete.teamName;
+      const id = teamToDelete.id;
+      setTeamToDelete(null);
+      setDeletePassInput('');
+      setDeleteError('');
+      alert(`✅ Team "${name}" (${id}) deleted successfully!`);
+      await loadPassData();
+    } catch (err) {
+      setDeleteError(err.message || 'Incorrect Manager / Admin Password!');
     }
   };
 
@@ -426,6 +459,98 @@ const Pass = () => {
             </div>
           </div>
 
+          {/* REGISTERED TEAMS & SINGLE TEAM REMOVAL */}
+          {(() => {
+            const filteredTeams = teams.filter(t => {
+              if (!teamSearchQuery.trim()) return true;
+              const q = teamSearchQuery.toLowerCase().trim();
+              return (
+                (t.id && t.id.toLowerCase().includes(q)) ||
+                (t.teamName && t.teamName.toLowerCase().includes(q)) ||
+                (t.leaderName && t.leaderName.toLowerCase().includes(q)) ||
+                (t.eventTitle && t.eventTitle.toLowerCase().includes(q))
+              );
+            });
+
+            return (
+              <div className="glass-panel" style={{ padding: 28, marginBottom: 36 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>👥 Registered Teams ({teams.length}) — Delete Individual Teams</h3>
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                      Search and delete 1 specific team individually without resetting all other team registrations or test data.
+                    </p>
+                  </div>
+
+                  <input
+                    type="text"
+                    className="glass-input"
+                    placeholder="Search team ID, name, leader..."
+                    style={{ width: 280 }}
+                    value={teamSearchQuery}
+                    onChange={e => setTeamSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {filteredTeams.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>No teams registered or matching search criteria.</p>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.15)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                          <th style={{ padding: '12px 14px' }}>Team ID & Name</th>
+                          <th style={{ padding: '12px 14px' }}>Event</th>
+                          <th style={{ padding: '12px 14px' }}>Leader</th>
+                          <th style={{ padding: '12px 14px' }}>Members</th>
+                          <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTeams.map(t => (
+                          <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                            <td style={{ padding: '12px 14px' }}>
+                              <strong style={{ color: '#fff', display: 'block' }}>{t.teamName}</strong>
+                              <code style={{ color: '#1ce604', fontSize: '0.78rem' }}>{t.id}</code>
+                            </td>
+                            <td style={{ padding: '12px 14px', color: 'rgba(255,255,255,0.85)' }}>{t.eventTitle}</td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <div style={{ fontWeight: 700, color: '#fff' }}>{t.leaderName}</div>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.leaderPhone}</div>
+                            </td>
+                            <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
+                              {(t.members || []).length} participants
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                              <button
+                                onClick={() => handleDeleteSingleTeam(t)}
+                                style={{
+                                  background: 'rgba(239, 74, 64, 0.25)',
+                                  border: '1px solid rgba(239, 74, 64, 0.5)',
+                                  color: '#ff8a82',
+                                  padding: '6px 14px',
+                                  borderRadius: 8,
+                                  cursor: 'pointer',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6
+                                }}
+                              >
+                                <Trash2 size={14} /> Delete Team
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* EVENT POINT TABLES & EVALUATION CRITERIA CLASSIFICATION */}
           <div className="glass-panel" style={{ padding: 28, marginBottom: 36 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
@@ -768,6 +893,78 @@ const Pass = () => {
                     </PillButton>
                     <PillButton type="submit" variant="danger" style={{ background: '#d97706', border: 'none', color: '#fff' }}>
                       Confirm Reset
+                    </PillButton>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {/* DELETE TEAM CONFIRMATION MODAL WITH MANAGER PASSWORD */}
+          {teamToDelete && (
+            <div className="modal-overlay" onClick={() => setTeamToDelete(null)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: 'rgba(239, 74, 64, 0.2)',
+                    border: '1px solid rgba(239, 74, 64, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Trash2 size={22} color="#ff8a82" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Delete Team</h3>
+                    <span style={{ fontSize: '0.8rem', color: '#ff8a82', fontWeight: 600 }}>Manager / Admin Password Required</span>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+                  You are about to delete team <strong style={{ color: '#fff' }}>"{teamToDelete.teamName}" ({teamToDelete.id})</strong>.
+                  <br /><br />
+                  <span style={{ color: '#ff8a82', fontWeight: 600 }}>⚠️ This action will permanently remove this 1 team from the database.</span>
+                </p>
+
+                {deleteError && (
+                  <div style={{
+                    background: 'rgba(239, 74, 64, 0.15)',
+                    border: '1px solid rgba(239, 74, 64, 0.4)',
+                    color: '#ff8a82',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    fontSize: '0.88rem',
+                    marginBottom: 16
+                  }}>
+                    {deleteError}
+                  </div>
+                )}
+
+                <form onSubmit={handleConfirmDeleteTeamSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                      Enter Manager / Admin Password *
+                    </label>
+                    <input
+                      type="password"
+                      className="glass-input"
+                      placeholder="Enter Manager or Admin Password"
+                      value={deletePassInput}
+                      onChange={e => setDeletePassInput(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
+                    <PillButton type="button" onClick={() => setTeamToDelete(null)} variant="secondary">
+                      Cancel
+                    </PillButton>
+                    <PillButton type="submit" variant="danger" style={{ background: '#ef4a40', border: 'none', color: '#fff' }}>
+                      Confirm Delete Team
                     </PillButton>
                   </div>
                 </form>
