@@ -31,6 +31,16 @@ const Home = () => {
   const [registerModalEvent, setRegisterModalEvent] = useState(null);
   const [teamName, setTeamName] = useState('');
   const [college, setCollege] = useState('');
+  const [department, setDepartment] = useState('');
+  const [leaderName, setLeaderName] = useState('');
+  const [leaderPhone, setLeaderPhone] = useState('');
+  const [leaderEmail, setLeaderEmail] = useState('');
+  const [memberNames, setMemberNames] = useState(['', '', '']);
+  const [registrationResult, setRegistrationResult] = useState(null);
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  const [expandProgress, setExpandProgress] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Start at top or scroll to target section if hash exists on mount
   useEffect(() => {
@@ -115,16 +125,6 @@ const Home = () => {
       document.body.classList.remove('modal-open');
     };
   }, [selectedEvent, registerModalEvent]);
-  const [department, setDepartment] = useState('');
-  const [leaderName, setLeaderName] = useState('');
-  const [leaderPhone, setLeaderPhone] = useState('');
-  const [leaderEmail, setLeaderEmail] = useState('');
-  const [memberNames, setMemberNames] = useState(['', '', '']);
-  const [registrationResult, setRegistrationResult] = useState(null);
-  const [qrDataUrl, setQrDataUrl] = useState('');
-
-  const [expandProgress, setExpandProgress] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
