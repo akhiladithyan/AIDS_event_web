@@ -170,3 +170,44 @@
   color: #1ce604;
   font-weight: 700;
 }
+
+@media (max-width: 768px) {
+  .about-section {
+    margin-top: 60px;
+    margin-bottom: 70px;
+  }
+
+  .about-card {
+    padding: 20px 16px;
+    gap: 20px;
+    border-radius: 20px;
+  }
+
+  .about-terminal-box {
+    padding: 20px 16px;
+    gap: 14px;
+    border-radius: 14px;
+  }
+
+  .about-prompt-line {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    padding-left: 16px;
+  }
+
+  .about-stats-grid {
+    gap: 10px;
+  }
+
+  .about-stat-box {
+    padding: 12px;
+  }
+
+  .about-stat-val {
+    font-size: 1.05rem;
+  }
+
+  .about-stat-lbl {
+    font-size: 0.65rem;
+  }
+}
