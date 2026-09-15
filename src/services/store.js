@@ -276,12 +276,19 @@ export const storeService = {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const newEvent = { ...event, id: event.id || 'evt-' + Date.now() };
     const dbPayload = mapEventToDb(newEvent);
+    
     let { error } = await supabase.from('events').insert([dbPayload]);
-    if (error && (error.message.includes('max_teams') || error.code === 'PGRST204')) {
-      delete dbPayload.max_teams;
-      const res = await supabase.from('events').insert([dbPayload]);
+    
+    // Fallback if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
+    if (error && (error.message.includes('criteria') || error.message.includes('max_teams') || error.code === 'PGRST204')) {
+      const fallbackPayload = { ...dbPayload };
+      delete fallbackPayload.criteria;
+      delete fallbackPayload.max_teams;
+      
+      const res = await supabase.from('events').insert([fallbackPayload]);
       error = res.error;
     }
+    
     if (error) {
       console.error('Supabase add event error:', error);
       throw error;
@@ -292,12 +299,19 @@ export const storeService = {
   async updateEvent(updatedEvent) {
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const dbPayload = mapEventToDb(updatedEvent);
+    
     let { error } = await supabase.from('events').update(dbPayload).eq('id', updatedEvent.id);
-    if (error && (error.message.includes('max_teams') || error.code === 'PGRST204')) {
-      delete dbPayload.max_teams;
-      const res = await supabase.from('events').update(dbPayload).eq('id', updatedEvent.id);
+    
+    // Fallback if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
+    if (error && (error.message.includes('criteria') || error.message.includes('max_teams') || error.code === 'PGRST204')) {
+      const fallbackPayload = { ...dbPayload };
+      delete fallbackPayload.criteria;
+      delete fallbackPayload.max_teams;
+      
+      const res = await supabase.from('events').update(fallbackPayload).eq('id', updatedEvent.id);
       error = res.error;
     }
+    
     if (error) {
       console.error('Supabase update event error:', error);
       throw new Error(`Failed to update event: ${error.message || 'Database error'}`);
