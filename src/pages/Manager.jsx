@@ -64,6 +64,14 @@ const Manager = () => {
     setIsAuthenticated(false);
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    loadManagerData();
+    // Poll attendance and team data every 3 seconds for instant multi-user synchronization
+    const interval = setInterval(loadManagerData, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   const loadManagerData = async () => {
     const tms = await storeService.getTeams();
     const evts = await storeService.getEvents();
@@ -245,10 +253,55 @@ const Manager = () => {
   };
 
   const handleToggleAttendanceStage = async (teamId, memberUserId, type) => {
+    // 1. Optimistic UI update for instant UI feedback
+    const prevAttendance = { ...attendance };
+    setAttendance(prev => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const existing = clone[teamId] || { present: false, lunch: false, snacks: false, studentScans: {} };
+      const studentScans = existing.studentScans || {};
+      const scanTypeKey = type.toLowerCase();
+
+      if (memberUserId) {
+        if (!studentScans[memberUserId]) studentScans[memberUserId] = { attendance: false, lunch: false, snacks: false };
+        if (scanTypeKey === 'attendance') {
+          const nextState = !studentScans[memberUserId].attendance;
+          studentScans[memberUserId].attendance = nextState;
+          if (!nextState) {
+            studentScans[memberUserId].lunch = false;
+            studentScans[memberUserId].snacks = false;
+          }
+        } else if (scanTypeKey === 'lunch' || scanTypeKey === 'snacks') {
+          studentScans[memberUserId][scanTypeKey] = !Boolean(studentScans[memberUserId][scanTypeKey]);
+        }
+      } else {
+        if (scanTypeKey === 'attendance') {
+          const nextState = !existing.present;
+          existing.present = nextState;
+          if (!nextState) {
+            existing.lunch = false;
+            existing.snacks = false;
+            Object.keys(studentScans).forEach(sId => {
+              studentScans[sId].attendance = false;
+              studentScans[sId].lunch = false;
+              studentScans[sId].snacks = false;
+            });
+          }
+        } else if (scanTypeKey === 'lunch' || scanTypeKey === 'snacks') {
+          existing[scanTypeKey] = !Boolean(existing[scanTypeKey]);
+        }
+      }
+
+      existing.studentScans = studentScans;
+      clone[teamId] = existing;
+      return clone;
+    });
+
     try {
       await storeService.toggleAttendanceStage(teamId, memberUserId, type);
       await loadManagerData();
     } catch (err) {
+      // Revert optimistic state on error
+      setAttendance(prevAttendance);
       alert(err.message || 'Operation failed');
     }
   };
