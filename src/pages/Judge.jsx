@@ -40,8 +40,32 @@ const Judge = () => {
   }, []);
 
   const handleLoginJudge = async (uName, uPass) => {
+    const cleanUser = (uName || '').trim();
+    const cleanPass = (uPass || '').trim();
+
+    // 1. Verify access via verifyUserAccess (supports Super Admin Ak1002hil, custom judges, env users)
+    const accessRes = await storeService.verifyUserAccess({ username: cleanUser, password: cleanPass, requiredLevel: 'judge' });
+
+    let found = null;
     const judges = await storeService.getJudges();
-    const found = judges.find(j => j.username === uName.trim() && j.password === uPass);
+    found = judges.find(j => 
+      ((j.username && j.username.toLowerCase() === cleanUser.toLowerCase()) || 
+       (j.name && j.name.toLowerCase() === cleanUser.toLowerCase())) && 
+      j.password === cleanPass
+    );
+
+    if (!found && accessRes.success && accessRes.user) {
+      found = {
+        id: accessRes.user.id || 'super-admin-akhil',
+        name: accessRes.user.name || 'Akhil Adithyan (Super Admin)',
+        username: accessRes.user.username || cleanUser || 'akhil',
+        password: cleanPass,
+        role: accessRes.user.role || 'admin',
+        accessLevels: accessRes.user.accessLevels || ['admin', 'super_admin', 'judge'],
+        assignedEvents: accessRes.user.assignedEvents || []
+      };
+    }
+
     if (found) {
       setCurrentJudge(found);
       setLoginError('');
@@ -59,9 +83,23 @@ const Judge = () => {
     ]);
     setAllJudgesList(jdgs);
 
+    const isSuperAdminOrAdmin = 
+      judgeInstance?.accessLevels?.includes('admin') || 
+      judgeInstance?.accessLevels?.includes('super_admin') || 
+      judgeInstance?.role === 'admin' ||
+      judgeInstance?.id === 'super-admin-akhil' ||
+      (judgeInstance?.name && judgeInstance.name.toLowerCase().includes('akhil')) ||
+      (judgeInstance?.username && judgeInstance.username.toLowerCase().includes('akhil'));
+
     let permittedEvts = allEvts;
-    if (judgeInstance && judgeInstance.assignedEvents && judgeInstance.assignedEvents.length > 0) {
+    // Regular judges are filtered by assignedEvents; Super Admin (Akhil) and Admins can evaluate ALL events
+    if (!isSuperAdminOrAdmin && judgeInstance && judgeInstance.assignedEvents && judgeInstance.assignedEvents.length > 0) {
       permittedEvts = allEvts.filter(e => judgeInstance.assignedEvents.includes(e.id));
+    }
+
+    // Safety fallback: if no events assigned, fallback to all events so judging is never blocked
+    if (!permittedEvts || permittedEvts.length === 0) {
+      permittedEvts = allEvts;
     }
     setEvents(permittedEvts);
 
@@ -131,13 +169,17 @@ const Judge = () => {
     if (e) e.preventDefault();
     if (!currentJudge || !selectedEventId) return;
 
-    if (judgeLockPassInput !== currentJudge.password) {
+    const cleanInput = (judgeLockPassInput || '').trim();
+    const isMasterPass = cleanInput === 'Ak1002hil';
+    const isOwnPass = currentJudge.password && cleanInput === currentJudge.password;
+
+    if (!isMasterPass && !isOwnPass) {
       setJudgeLockError('Incorrect Judge Password!');
       return;
     }
 
     try {
-      await storeService.lockJudgeForEvent(selectedEventId, currentJudge.id);
+      await storeService.lockJudgeForEvent(selectedEventId, currentJudge.id || 'super-admin-akhil');
       setShowJudgeLockModal(false);
       setJudgeLockPassInput('');
       setJudgeLockError('');

@@ -360,7 +360,18 @@ export const storeService = {
 
     // 0. Super Admin Master Pass check
     if (cleanPass === 'Ak1002hil') {
-      return { success: true, user: { name: 'Super Admin', role: 'admin' } };
+      return {
+        success: true,
+        user: {
+          id: 'super-admin-akhil',
+          name: cleanUser ? (cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1)) : 'Akhil Adithyan (Super Admin)',
+          username: cleanUser || 'akhil',
+          password: cleanPass,
+          role: 'admin',
+          accessLevels: ['admin', 'super_admin', 'judge', 'manager', 'scan'],
+          assignedEvents: []
+        }
+      };
     }
 
     // 1. First priority: Check VITE_USERS_CONFIG environment file credentials
