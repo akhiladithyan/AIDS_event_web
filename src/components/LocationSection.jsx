@@ -100,12 +100,11 @@ export default function LocationSection() {
                   style={{ width: '100%', height: '100%' }}
                 >
                   <div className={`contact-profile-card ${c.isPrimary ? 'contact-profile-card--primary' : ''}`}>
-                    {/* Top Star / Badge Header */}
+                    {/* Top Badge Header */}
                     <div className="contact-card-top-header">
                       <span className="contact-badge-pill">
                         {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
                       </span>
-                      <div className="contact-star-icon">★</div>
                     </div>
 
                     {/* Circular Profile Avatar Picture */}
@@ -189,11 +188,11 @@ export default function LocationSection() {
                 style={{ width: '100%' }}
               >
                 <div className={`contact-profile-card ${c.isPrimary ? 'contact-profile-card--primary' : ''}`}>
+                  {/* Top Badge Header */}
                   <div className="contact-card-top-header">
                     <span className="contact-badge-pill">
                       {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
                     </span>
-                    <div className="contact-star-icon">★</div>
                   </div>
 
                   <div className="contact-avatar-wrapper">
