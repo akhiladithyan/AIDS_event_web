@@ -199,10 +199,16 @@ const Grainient = ({
     const mesh = new Mesh(gl, { geometry, program });
     ctxMap.set(container, { renderer, program, mesh });
 
+    let lastW = 0;
+    let lastH = 0;
     const setSize = () => {
       const rect = container.getBoundingClientRect();
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
+      // Ignore minor vertical height fluctuations caused by mobile address bar show/hide
+      if (lastW > 0 && Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 60) return;
+      lastW = w;
+      lastH = h;
       renderer.setSize(w, h);
       const res = program.uniforms.iResolution.value;
       res[0] = gl.drawingBufferWidth;

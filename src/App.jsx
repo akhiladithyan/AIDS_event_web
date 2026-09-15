@@ -26,12 +26,13 @@ function AppContent() {
       {/* GLOBAL DYNAMIC GRADIENT BACKGROUND FOR THE WHOLE WEBSITE */}
       <div style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
+        inset: 0,
+        width: '100%',
+        height: '100%',
         zIndex: -1,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)'
       }}>
         <Grainient
           timeSpeed={0.15}

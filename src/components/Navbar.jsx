@@ -8,29 +8,35 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = React.useRef(0);
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const lastScrollY = lastScrollYRef.current;
 
-      // Show navbar if scrolled up or near top, hide if scrolled down past 50px threshold
-      if (currentScrollY <= 50) {
-        setIsVisible(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 5) {
-        // Scrolling down
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 5) {
-        // Scrolling up
-        setIsVisible(true);
+          if (currentScrollY <= 50) {
+            setIsVisible(true);
+          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 10) {
+            setIsVisible(false);
+          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 10) {
+            setIsVisible(true);
+          }
+
+          lastScrollYRef.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      setLastScrollY(currentScrollY);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   const handleHomeClick = (e) => {
     if (location.pathname === '/') {
