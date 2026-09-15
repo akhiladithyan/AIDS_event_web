@@ -12,6 +12,7 @@ const Admin = () => {
   
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [activeTab, setActiveTab] = useState('events');
   const [expandedTeamId, setExpandedTeamId] = useState(null);
 
@@ -30,6 +31,18 @@ const Admin = () => {
   const [rulesStr, setRulesStr] = useState('');
   const [image, setImage] = useState('');
 
+  // Contact Co-ordinators Modal State
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [editingContactId, setEditingContactId] = useState(null);
+  const [contactName, setContactName] = useState('');
+  const [contactRole, setContactRole] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactAvailability, setContactAvailability] = useState('');
+  const [contactBadgeText, setContactBadgeText] = useState('');
+  const [contactIsPrimary, setContactIsPrimary] = useState(false);
+  const [contactTagsStr, setContactTagsStr] = useState('');
+
   useEffect(() => {
     // Mandatory password lock: Require password entry on every page visit
     setIsAuthenticated(false);
@@ -38,8 +51,10 @@ const Admin = () => {
   const loadAdminData = async () => {
     const evts = await storeService.getEvents();
     const tms = await storeService.getTeams();
+    const cnts = await storeService.getContacts();
     setEvents(evts);
     setTeams(tms);
+    setContacts(cnts);
   };
 
   const handleLogin = async (e) => {
@@ -132,6 +147,56 @@ const Admin = () => {
   const handleDeleteClick = async (id) => {
     if (confirm('Are you sure you want to delete this event?')) {
       await storeService.deleteEvent(id);
+      await loadAdminData();
+    }
+  };
+
+  const handleSaveContact = async (e) => {
+    e.preventDefault();
+    try {
+      const tags = contactTagsStr.split(',').map(t => t.trim()).filter(Boolean);
+      const contactObj = {
+        id: editingContactId || undefined,
+        name: contactName,
+        role: contactRole,
+        phone: contactPhone,
+        email: contactEmail,
+        availability: contactAvailability,
+        badgeText: contactBadgeText || (contactIsPrimary ? 'Primary Contact' : 'Co-ordinator'),
+        isPrimary: contactIsPrimary,
+        tags
+      };
+
+      if (editingContactId) {
+        await storeService.updateContact(contactObj);
+      } else {
+        await storeService.addContact(contactObj);
+      }
+
+      setShowContactModal(false);
+      await loadAdminData();
+      alert(`Contact details for "${contactName}" saved!`);
+    } catch (err) {
+      alert(err.message || "Failed to save contact details.");
+    }
+  };
+
+  const handleEditContact = (c) => {
+    setEditingContactId(c.id);
+    setContactName(c.name);
+    setContactRole(c.role);
+    setContactPhone(c.phone);
+    setContactEmail(c.email || '');
+    setContactAvailability(c.availability || '');
+    setContactBadgeText(c.badgeText || '');
+    setContactIsPrimary(Boolean(c.isPrimary));
+    setContactTagsStr(c.tags ? c.tags.join(', ') : '');
+    setShowContactModal(true);
+  };
+
+  const handleDeleteContact = async (id) => {
+    if (confirm('Are you sure you want to delete this contact info?')) {
+      await storeService.deleteContact(id);
       await loadAdminData();
     }
   };
@@ -270,6 +335,13 @@ const Admin = () => {
               >
                 Registered Teams ({teams.length})
               </PillButton>
+              <PillButton
+                onClick={() => setActiveTab('contacts')}
+                variant={activeTab === 'contacts' ? 'active' : 'secondary'}
+                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+              >
+                Manage Contacts ({contacts.length})
+              </PillButton>
             </div>
           </div>
 
@@ -338,7 +410,79 @@ const Admin = () => {
             </div>
           )}
 
-          {/* TAB 2: REGISTERED TEAMS (VIEW ONLY) */}
+          {/* TAB 3: MANAGE CONTACTS */}
+          {activeTab === 'contacts' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                <div>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Co-ordinator & Helpdesk Contacts</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                    Contacts listed here appear dynamically on the main website below the venue location map.
+                  </p>
+                </div>
+                <PillButton
+                  onClick={() => {
+                    setEditingContactId(null);
+                    setContactName('');
+                    setContactRole('');
+                    setContactPhone('');
+                    setContactEmail('');
+                    setContactAvailability('Available 9 AM - 6 PM');
+                    setContactBadgeText('Co-ordinator');
+                    setContactIsPrimary(false);
+                    setContactTagsStr('');
+                    setShowContactModal(true);
+                  }}
+                  variant="primary"
+                >
+                  <Plus size={16} /> Add Co-ordinator Contact
+                </PillButton>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+                {contacts.map(c => (
+                  <div key={c.id} className="glass-panel" style={{ padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div>
+                          <span className={c.isPrimary ? 'badge-coral' : 'badge-purple'} style={{ fontSize: '0.75rem', marginBottom: 6, display: 'inline-block' }}>
+                            {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
+                          </span>
+                          <h4 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{c.name}</h4>
+                          <div style={{ fontSize: '0.88rem', color: '#4ade80', fontWeight: 700 }}>{c.role}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 6, margin: '14px 0' }}>
+                        <div><strong>Phone:</strong> <code style={{ color: '#fff', fontSize: '1rem' }}>{c.phone}</code></div>
+                        <div><strong>Email:</strong> {c.email || 'N/A'}</div>
+                        <div><strong>Availability:</strong> {c.availability || 'N/A'}</div>
+                      </div>
+
+                      {c.tags && c.tags.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                          {c.tags.map((t, idx) => (
+                            <span key={idx} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 100, fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
+                      <PillButton onClick={() => handleEditContact(c)} variant="secondary" style={{ flex: 1, padding: '8px', fontSize: '0.82rem' }}>
+                        <Edit size={14} /> Edit Contact
+                      </PillButton>
+                      <PillButton onClick={() => handleDeleteContact(c.id)} variant="danger" style={{ flex: 1, padding: '8px', fontSize: '0.82rem' }}>
+                        <Trash2 size={14} /> Delete
+                      </PillButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {activeTab === 'teams' && (
             <div className="glass-panel" style={{ padding: 24, overflowX: 'auto' }}>
               <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 16 }}>All Registered Teams</h3>
@@ -515,6 +659,118 @@ const Admin = () => {
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
                     <PillButton type="button" onClick={() => setShowEventModal(false)} variant="secondary">Cancel</PillButton>
                     <PillButton type="submit" variant="primary">Save Event</PillButton>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {/* EDIT / CREATE CONTACT MODAL */}
+          {showContactModal && (
+            <div className="modal-overlay" onClick={() => setShowContactModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 20 }}>
+                  {editingContactId ? 'Edit Contact Info' : 'Add Co-ordinator Contact'}
+                </h3>
+                <form onSubmit={handleSaveContact} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Full Name *</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="e.g. Akhil"
+                        value={contactName}
+                        onChange={e => setContactName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Role / Designation *</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="e.g. Technical Co-ordinator"
+                        value={contactRole}
+                        onChange={e => setContactRole(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Phone Number *</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="9499943640"
+                        value={contactPhone}
+                        onChange={e => setContactPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address</label>
+                      <input
+                        type="email"
+                        className="glass-input"
+                        placeholder="akhil.tech@veltechmultitech.org"
+                        value={contactEmail}
+                        onChange={e => setContactEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Availability Hours</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="Available 9 AM - 6 PM"
+                        value={contactAvailability}
+                        onChange={e => setContactAvailability(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Badge Label</label>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        placeholder="e.g. Primary Contact / Student Head"
+                        value={contactBadgeText}
+                        onChange={e => setContactBadgeText(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Tags (Comma separated)</label>
+                    <input
+                      type="text"
+                      className="glass-input"
+                      placeholder="Technical Doubts, Event Queries, AI & DS Dept"
+                      value={contactTagsStr}
+                      onChange={e => setContactTagsStr(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <input
+                      type="checkbox"
+                      id="isPrimaryCheckbox"
+                      checked={contactIsPrimary}
+                      onChange={e => setContactIsPrimary(e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: '#1ce604', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="isPrimaryCheckbox" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+                      Set as Primary Highlighted Contact Card
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
+                    <PillButton type="button" onClick={() => setShowContactModal(false)} variant="secondary">Cancel</PillButton>
+                    <PillButton type="submit" variant="primary">Save Contact</PillButton>
                   </div>
                 </form>
               </div>

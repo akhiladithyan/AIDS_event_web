@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { storeService } from '../services/store';
 import ScrollExpand from '../components/ScrollExpand';
 import DoomsdayHero from '../components/DoomsdayHero';
+import AboutSection from '../components/AboutSection';
+import LocationSection from '../components/LocationSection';
 import Grainient from '../components/Grainient';
 import MagicBento, { ParticleCard } from '../components/MagicBento';
 import PillButton from '../components/PillButton';
@@ -160,19 +162,23 @@ const Home = () => {
           visibility: isCompleted || expandProgress > 0.8 ? 'visible' : 'hidden'
         }}
       >
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 20,
-          marginBottom: 36
-        }}>
+        {/* ABOUT AIDEX'26 BRIEFING SECTION */}
+        <AboutSection />
+        <div
+          id="event-cards-grid"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 20,
+            marginTop: 60,
+            marginBottom: 36,
+            scrollMarginTop: 100
+          }}
+        >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#ef4a40', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.85rem' }}>
-              <Cpu size={16} /> Flagship Department Events
-            </div>
-            <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginTop: 4 }}>
+            <h2 style={{ fontSize: '2.2rem', fontWeight: 800 }}>
               Explore Competitions & Challenges
             </h2>
           </div>
@@ -192,8 +198,9 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Event Cards Grid with Green Magic Bento & Particle Effects */}
-        <MagicBento glowColor="34, 197, 94">
+        {/* Event Cards Grid Container with 140px Bottom Margin */}
+        <div style={{ marginBottom: 140 }}>
+          <MagicBento glowColor="34, 197, 94">
           {filteredEvents.map(evt => {
             const registeredTeamCount = teams.filter(t => t.eventId === evt.id).length;
             const maxSlots = evt.maxTeams || 20;
@@ -297,6 +304,10 @@ const Home = () => {
             );
           })}
         </MagicBento>
+        </div>
+
+        {/* LOCATION & VENUE MAP SECTION */}
+        <LocationSection />
       </div>
 
       {/* EVENT DETAILS MODAL */}

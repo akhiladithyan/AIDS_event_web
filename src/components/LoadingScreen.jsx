@@ -19,9 +19,9 @@ export default function LoadingScreen({ onComplete }) {
   const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
-    // Total duration target: 3000ms (3 seconds total)
-    const DURATION_MS = 2700;
-    const INTERVAL_MS = 27;
+    // Fast total duration target: ~1.2 seconds total (1000ms progress + 200ms exit transition)
+    const DURATION_MS = 1000;
+    const INTERVAL_MS = 15;
     const totalSteps = DURATION_MS / INTERVAL_MS;
     let currentStep = 0;
 
@@ -32,10 +32,10 @@ export default function LoadingScreen({ onComplete }) {
 
       if (currentStep >= totalSteps) {
         clearInterval(interval);
+        setIsDone(true);
         setTimeout(() => {
-          setIsDone(true);
           if (onComplete) onComplete();
-        }, 300);
+        }, 200);
       }
     }, INTERVAL_MS);
 
@@ -96,10 +96,10 @@ export default function LoadingScreen({ onComplete }) {
             <div className="aidex-split-flap-wrap">
               <SplitFlapText
                 words={STATUS_WORDS}
-                flipDuration={0.05}
-                stagger={0.015}
-                cycleDelay={450}
-                flipsPerChar={3}
+                flipDuration={0.03}
+                stagger={0.01}
+                cycleDelay={180}
+                flipsPerChar={2}
                 tileColor="transparent"
                 textColor="#00ff80"
                 tileRadius={0}

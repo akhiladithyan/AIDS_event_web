@@ -12,14 +12,16 @@ import Results from './pages/Results';
 import Scan from './pages/Scan';
 import Pass from './pages/Pass';
 import LoadingScreen from './components/LoadingScreen';
+import LogoLoop from './components/LogoLoop';
 
-function App() {
-  const [isLoading, setIsLoading] = React.useState(true);
+function AppContent() {
+  const isHomePage = window.location.pathname === '/';
+  const [isLoading, setIsLoading] = React.useState(isHomePage);
 
   return (
-    <BrowserRouter>
-      {/* CYBERPUNK LOADING SCREEN FOR AIDEX '26 */}
-      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
+    <>
+      {/* CYBERPUNK LOADING SCREEN FOR AIDEX '26 (ONLY ON HOME PAGE REFRESH) */}
+      {isLoading && isHomePage && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
       {/* GLOBAL DYNAMIC GRADIENT BACKGROUND FOR THE WHOLE WEBSITE */}
       <div style={{
@@ -58,7 +60,7 @@ function App() {
 
         <footer style={{
           textAlign: 'center',
-          padding: '24px 20px',
+          padding: '28px 20px',
           color: 'rgba(255, 255, 255, 0.6)',
           fontSize: '0.85rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.12)',
@@ -66,14 +68,31 @@ function App() {
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16
         }}>
+          {/* React Bits Infinite Logo Loop Marquee */}
+          <div style={{ width: '100%', maxWidth: 1000, margin: '0 auto' }}>
+            <LogoLoop speed={30} pauseOnHover={true} />
+          </div>
+
           <div>AIDEX 2026 &copy; Department of Artificial Intelligence & Data Science</div>
-          <div style={{ fontSize: '0.78rem', marginTop: 4, color: 'rgba(255, 255, 255, 0.4)' }}>
-            Powered by React, Supabase & Glassmorphism UI Architecture
+          <div style={{ fontSize: '0.8rem', marginTop: -4, color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>
+            Vel Tech Multi Tech Dr. Rangarajan Dr. Sakunthala Engineering College
           </div>
         </footer>
       </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

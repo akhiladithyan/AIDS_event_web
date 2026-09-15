@@ -1,0 +1,375 @@
+.location-section {
+  position: relative;
+  width: 100%;
+  margin-top: 140px;
+  margin-bottom: 140px;
+  z-index: 2;
+}
+
+.location-container {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(28, 230, 4, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(28, 230, 4, 0.05);
+  margin-bottom: 140px;
+}
+
+/* Map Iframe & Dark Scrim Filter */
+.location-map-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.location-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  filter: invert(92%) hue-rotate(130deg) contrast(1.25) brightness(0.65);
+  opacity: 0.9;
+}
+
+.location-map-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 15% 50%, rgba(4, 10, 6, 0.3) 0%, rgba(4, 10, 6, 0.75) 100%),
+              linear-gradient(to right, rgba(4, 10, 6, 0.6) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Dark Neon Glass Floating Card */
+.location-card {
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+  margin: 36px;
+  padding: 36px;
+  background: rgba(10, 18, 12, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(28, 230, 4, 0.35);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(28, 230, 4, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.location-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: rgba(28, 230, 4, 0.12);
+  border: 1px solid rgba(28, 230, 4, 0.35);
+  color: #1ce604;
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  width: fit-content;
+}
+
+.location-title {
+  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.location-accent-bar {
+  width: 50px;
+  height: 3px;
+  background: #1ce604;
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(28, 230, 4, 0.8);
+}
+
+.location-subtitle {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+}
+
+.location-subtitle strong {
+  color: #ffffff;
+}
+
+.location-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.location-detail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #1ce604;
+  font-family: monospace;
+}
+
+.location-value {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0;
+}
+
+.location-actions {
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .location-container {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .location-map-wrapper {
+    position: relative;
+    height: 280px;
+  }
+
+  .location-card {
+    margin: 16px;
+    padding: 24px;
+    max-width: none;
+  }
+}
+
+/* Contact Details Card Below Map Section */
+.contact-info-section {
+  width: 100%;
+  margin-top: 140px;
+  margin-bottom: 140px;
+  scroll-margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.contact-info-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contact-info-title {
+  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.contact-info-desc {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+
+/* Job Card Grid Layout Matching Reference Image */
+.contact-job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.contact-job-card {
+  background: rgba(12, 20, 14, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(28, 230, 4, 0.25);
+  border-radius: 28px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(28, 230, 4, 0.05);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contact-job-card--highlight {
+  background: rgba(14, 26, 17, 0.9);
+  border-color: rgba(28, 230, 4, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(28, 230, 4, 0.08);
+}
+
+.contact-job-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(28, 230, 4, 0.6);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 0 25px rgba(28, 230, 4, 0.12);
+}
+
+/* Card Header Row */
+.contact-job-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contact-job-company {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contact-job-time {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.contact-job-badge {
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.contact-job-badge--primary {
+  background: rgba(28, 230, 4, 0.15);
+  border-color: rgba(28, 230, 4, 0.4);
+  color: #1ce604;
+}
+
+/* Name & Title */
+.contact-job-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-job-name {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.contact-job-designation {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1ce604;
+  letter-spacing: 0.02em;
+}
+
+/* Category Tags Row */
+.contact-job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contact-tag {
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Divider Line */
+.contact-job-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}
+
+/* Card Bottom Section (Phone & Apply Pill Button) */
+.contact-job-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contact-job-phone {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-phone-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: monospace;
+  letter-spacing: -0.02em;
+}
+
+.contact-phone-sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.contact-apply-btn {
+  padding: 12px 24px;
+  border-radius: 100px;
+  background: #1ce604;
+  color: #060c08;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(28, 230, 4, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.contact-apply-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(28, 230, 4, 0.55);
+  background: #20f805;
+}
+
+@media (max-width: 600px) {
+  .contact-job-card {
+    padding: 24px;
+  }
+
+  .contact-job-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .contact-apply-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

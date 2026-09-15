@@ -30,45 +30,74 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  const handleHomeClick = (e) => {
+    if (location.pathname === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleEventsClick = (e) => {
+    if (location.pathname === '/') {
+      e.preventDefault();
+      const el = document.getElementById('event-cards-grid');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleContactClick = (e) => {
+    e.preventDefault();
+    const el = document.getElementById('contact-info-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const navItems = [
-    { label: 'Events', href: '/' },
+    { label: 'Home', href: '/', onClick: handleHomeClick },
+    { label: 'Events', href: location.pathname === '/' ? '#event-cards-grid' : '/#event-cards-grid', onClick: handleEventsClick },
+    { label: 'Contact', href: location.pathname === '/' ? '#contact-info-section' : '/#contact-info-section', onClick: handleContactClick },
     { label: 'Results', href: '/results' },
     { label: 'Student Profile', href: '/student' }
   ];
 
   const brandLogoComponent = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'auto' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'auto' }}>
       <div style={{
-        width: 34,
-        height: 34,
+        width: 36,
+        height: 36,
         borderRadius: '50%',
-        background: 'linear-gradient(135deg, #ef4a40 0%, #6654b5 100%)',
+        background: 'rgba(28, 230, 4, 0.15)',
+        border: '1.5px solid rgba(28, 230, 4, 0.4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 0 15px rgba(239, 74, 64, 0.5)',
-        flexShrink: 0
+        boxShadow: '0 0 15px rgba(28, 230, 4, 0.35)',
+        flexShrink: 0,
+        overflow: 'hidden'
       }}>
-        <Cpu size={18} color="#fff" />
+        <img
+          src="/images/icon.png"
+          alt="AIDEX Icon"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: '1.05rem',
-          fontWeight: 800,
-          letterSpacing: '-0.02em',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          lineHeight: 1.1
-        }}>
-          AIDEX <span style={{ color: '#ef4a40' }}>'26</span>
-          <Sparkles size={12} color="#ef4a40" />
-        </div>
-        <div style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600, letterSpacing: '0.05em', lineHeight: 1 }}>
-          DEPT OF AI & DS
-        </div>
+      <div style={{
+        fontFamily: 'var(--font-heading)',
+        fontSize: '1.25rem',
+        fontWeight: 900,
+        letterSpacing: '-0.02em',
+        background: 'linear-gradient(135deg, #ffffff 0%, #b8ffbf 45%, #1ce604 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        lineHeight: 1
+      }}>
+        AIDEX '26
       </div>
     </div>
   );

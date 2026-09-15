@@ -14,7 +14,7 @@
   user-select: none;
   overflow: hidden;
   opacity: 1;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s;
 }
 
 .aidex-glitch-bg {

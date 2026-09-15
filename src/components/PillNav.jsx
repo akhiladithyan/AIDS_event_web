@@ -275,6 +275,7 @@ const PillNav = ({
                     to={item.href}
                     className={`pill${activeHref === item.href ? ' is-active' : ''}`}
                     aria-label={item.ariaLabel || item.label}
+                    onClick={item.onClick}
                     onMouseEnter={() => handleEnter(i)}
                     onMouseLeave={() => handleLeave(i)}
                   >
@@ -298,6 +299,7 @@ const PillNav = ({
                     href={item.href}
                     className={`pill${activeHref === item.href ? ' is-active' : ''}`}
                     aria-label={item.ariaLabel || item.label}
+                    onClick={item.onClick}
                     onMouseEnter={() => handleEnter(i)}
                     onMouseLeave={() => handleLeave(i)}
                   >
@@ -340,7 +342,10 @@ const PillNav = ({
                 <Link
                   to={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={e => {
+                    item.onClick?.(e);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -348,7 +353,10 @@ const PillNav = ({
                 <a
                   href={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={e => {
+                    item.onClick?.(e);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {item.label}
                 </a>

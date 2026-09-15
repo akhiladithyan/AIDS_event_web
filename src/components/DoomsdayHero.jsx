@@ -6,6 +6,15 @@ import ShinyText from './ShinyText';
 import './DoomsdayHero.css';
 
 export default function DoomsdayHero({ bgImage, onExploreClick }) {
+  const handleExploreClick = (e) => {
+    e.preventDefault();
+    const el = document.getElementById('event-cards-grid');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (onExploreClick) onExploreClick(e);
+  };
+
   return (
     <div className="doomsday-hero">
       {/* Background Image Layer */}
@@ -32,10 +41,7 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
 
       {/* Main Content */}
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 800 }}>
-        {/* Protocol Badge */}
-        <div className="doomsday-badge">
-          <span className="doomsday-status-dot" /> // DOOMSDAY PROTOCOL ACTIVE
-        </div>
+
 
         {/* Main Title with Fuzzy Text Animation */}
         <div style={{ margin: '0 0 -10px 0' }}>
@@ -78,9 +84,9 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
         <div className="doomsday-actions">
           <PillButton
             as="a"
-            href="#events-section"
+            href="#event-cards-grid"
             variant="primary"
-            onClick={onExploreClick}
+            onClick={handleExploreClick}
             style={{
               padding: '12px 28px',
               backgroundColor: '#1ce604',

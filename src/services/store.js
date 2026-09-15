@@ -102,6 +102,31 @@ const INITIAL_TEAMS = [
   }
 ];
 
+export const INITIAL_CONTACTS = [
+  {
+    id: 'c1',
+    name: 'Akhil',
+    role: 'Technical Co-ordinator',
+    phone: '9499943640',
+    email: 'akhil.tech@veltechmultitech.org',
+    availability: 'Available 9 AM - 6 PM',
+    isPrimary: true,
+    badgeText: 'Primary Contact',
+    tags: ['Technical Doubts', 'Event Queries', 'AI & DS Dept']
+  },
+  {
+    id: 'c2',
+    name: 'Department Office',
+    role: 'General & Registration Office',
+    phone: '+91 98765 43210',
+    email: 'aidex2026@veltechmultitech.org',
+    availability: 'Helpdesk Desk',
+    isPrimary: false,
+    badgeText: 'General Desk',
+    tags: ['Registrations', 'Venue Guidance', 'On-Spot Help']
+  }
+];
+
 export const DEFAULT_CRITERIA = [
   { id: 'crit-1', label: 'Innovation & Originality', maxPoints: 10 },
   { id: 'crit-2', label: 'Technical Execution', maxPoints: 10 },
@@ -1259,9 +1284,64 @@ export const storeService = {
       judges: await this.getJudges(),
       scores: await this.getScores(),
       locks: await this.getJudgingLock(),
-      passwords: await this.getPasswords()
+      passwords: await this.getPasswords(),
+      contacts: await this.getContacts()
     };
     return JSON.stringify(backupData, null, 2);
+  },
+
+  // 8. CONTACTS MANAGEMENT (Student & Tech Co-ordinators)
+  async getContacts() {
+    try {
+      const stored = localStorage.getItem('aidex_contacts');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {}
+
+    // Fallback seed
+    try {
+      localStorage.setItem('aidex_contacts', JSON.stringify(INITIAL_CONTACTS));
+    } catch (e) {}
+    return INITIAL_CONTACTS;
+  },
+
+  async addContact(contact) {
+    const contacts = await this.getContacts();
+    const newContact = {
+      id: contact.id || 'c-' + Date.now(),
+      name: contact.name || '',
+      role: contact.role || 'Co-ordinator',
+      phone: contact.phone || '',
+      email: contact.email || '',
+      availability: contact.availability || 'Available Event Day',
+      isPrimary: Boolean(contact.isPrimary),
+      badgeText: contact.badgeText || (contact.isPrimary ? 'Primary Contact' : 'Co-ordinator'),
+      tags: Array.isArray(contact.tags) ? contact.tags : (contact.tags ? contact.tags.split(',').map(t => t.trim()) : ['Queries', 'Helpdesk'])
+    };
+    const updated = [...contacts, newContact];
+    try {
+      localStorage.setItem('aidex_contacts', JSON.stringify(updated));
+    } catch (e) {}
+    return newContact;
+  },
+
+  async updateContact(contact) {
+    const contacts = await this.getContacts();
+    const updated = contacts.map(c => c.id === contact.id ? { ...c, ...contact } : c);
+    try {
+      localStorage.setItem('aidex_contacts', JSON.stringify(updated));
+    } catch (e) {}
+    return contact;
+  },
+
+  async deleteContact(id) {
+    const contacts = await this.getContacts();
+    const updated = contacts.filter(c => c.id !== id);
+    try {
+      localStorage.setItem('aidex_contacts', JSON.stringify(updated));
+    } catch (e) {}
+    return true;
   }
 };
 
