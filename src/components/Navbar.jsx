@@ -18,12 +18,15 @@ const Navbar = () => {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
           const lastScrollY = lastScrollYRef.current;
+          const diff = currentScrollY - lastScrollY;
 
-          if (currentScrollY <= 40) {
+          if (currentScrollY <= 20) {
             setIsVisible(true);
-          } else if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 8) {
+          } else if (diff > 5) {
+            // Scrolling down
             setIsVisible(false);
-          } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 12) {
+          } else if (diff < -5) {
+            // Scrolling up
             setIsVisible(true);
           }
 
