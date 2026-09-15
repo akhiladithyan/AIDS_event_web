@@ -23,15 +23,16 @@
 .react-bits-carousel-slide {
   min-width: 100%;
   box-sizing: border-box;
-  padding: 0 8px;
-  opacity: 0.45;
-  scale: 0.95;
-  transition: opacity 0.35s ease, scale 0.35s ease;
+  padding: 0 4px;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .react-bits-carousel-slide.active {
   opacity: 1;
-  scale: 1;
 }
 
 .react-bits-carousel-controls {
