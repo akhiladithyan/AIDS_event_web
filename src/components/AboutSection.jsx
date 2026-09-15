@@ -33,7 +33,7 @@ export default function AboutSection() {
         {/* Right Column: Mission Briefing Terminal */}
         <div className="about-terminal-box">
           <div className="about-prompt-line">
-            Welcome to <strong>AIDEX'26</strong>, the National Level Technical Symposium proudly presented by the Department of <strong>Artificial Intelligence & Data Science</strong> at Vel Tech Multi Tech.
+            Welcome to <strong>AIDEX'26</strong>, Welcome to AIDEX26 a technical Symposium proudly presented by the Department of <strong>Artificial Intelligence & Data Science</strong> at Vel Tech Multi Tech.
           </div>
 
           <div className="about-prompt-line">
