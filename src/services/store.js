@@ -112,19 +112,31 @@ export const INITIAL_CONTACTS = [
     availability: 'Available 9 AM - 6 PM',
     isPrimary: true,
     badgeText: 'Primary Contact',
-    profilePic: '/profile_pic/default_avatar.jpg',
+    profilePic: '/profile-pic/profile-pic-1.jpeg',
     tags: ['Technical Doubts', 'Event Queries', 'AI & DS Dept']
   },
   {
     id: 'c2',
+    name: 'Student Co-ordinator',
+    role: 'Event Lead & Queries',
+    phone: '+91 98765 43210',
+    email: 'coordinator@veltechmultitech.org',
+    availability: 'Event Day Helpdesk',
+    isPrimary: false,
+    badgeText: 'Student Lead',
+    profilePic: '/profile-pic/profile-pic-2.jpeg',
+    tags: ['Schedule Info', 'Team Check-in', 'Guidance']
+  },
+  {
+    id: 'c3',
     name: 'Department Office',
     role: 'General & Registration Office',
-    phone: '+91 98765 43210',
+    phone: '+91 91234 56789',
     email: 'aidex2026@veltechmultitech.org',
     availability: 'Helpdesk Desk',
     isPrimary: false,
     badgeText: 'General Desk',
-    profilePic: '/profile_pic/default_avatar.jpg',
+    profilePic: '/profile-pic/profile-pic-3.jpeg',
     tags: ['Registrations', 'Venue Guidance', 'On-Spot Help']
   }
 ];
@@ -1334,11 +1346,17 @@ export const storeService = {
     try {
       const stored = localStorage.getItem('aidex_contacts');
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length >= 3) {
+          return parsed.map((c, i) => ({
+            ...c,
+            profilePic: c.profilePic && !c.profilePic.includes('default_avatar') ? c.profilePic : (INITIAL_CONTACTS[i]?.profilePic || `/profile-pic/profile-pic-${(i % 3) + 1}.jpeg`)
+          }));
+        }
       }
     } catch (e) {}
 
-    // Fallback seed
+    // Fallback seed with 3 contacts
     try {
       localStorage.setItem('aidex_contacts', JSON.stringify(INITIAL_CONTACTS));
     } catch (e) {}

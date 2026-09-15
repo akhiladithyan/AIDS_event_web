@@ -249,17 +249,18 @@
   width: fit-content;
 }
 
-/* Reference Profile Card Layout - Compact Shorter Dimensions */
+/* Reference Contact Card Layout - Clean Sleek Dimensions */
 .contact-profile-card {
   position: relative;
   background: #09130c;
   border: 1px solid rgba(28, 230, 4, 0.3);
   border-radius: 26px;
-  padding: 22px 18px 20px 18px;
+  padding: 24px 20px 22px 20px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 0 25px rgba(28, 230, 4, 0.05);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
@@ -290,11 +291,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .contact-badge-pill {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -305,50 +306,24 @@
   color: #1ce604;
 }
 
-/* Bigger Circular Avatar Image with Dual Glowing Border */
-.contact-avatar-wrapper {
-  position: relative;
-  margin-bottom: 14px;
-}
-
-.contact-avatar-ring {
-  width: 145px;
-  height: 145px;
-  border-radius: 50%;
-  padding: 4px;
-  background: linear-gradient(135deg, #1ce604 0%, rgba(28, 230, 4, 0.2) 50%, #ffffff 100%);
-  box-shadow: 0 0 25px rgba(28, 230, 4, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.contact-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #060c08;
-}
-
 /* Profile Info */
 .contact-profile-info {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   width: 100%;
+  text-align: left;
 }
 
 .contact-profile-name {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 900;
-  margin: 0 0 2px 0;
+  margin: 0 0 4px 0;
   letter-spacing: -0.02em;
 }
 
 .contact-profile-role {
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* Queries Handled Section */
@@ -356,12 +331,13 @@
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  flex-grow: 1;
 }
 
 .contact-queries-label {
@@ -376,27 +352,29 @@
 .contact-queries-tags {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .contact-query-tag {
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 100px;
   background: rgba(28, 230, 4, 0.08);
   border: 1px solid rgba(28, 230, 4, 0.2);
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Equal-sized Pill Nav Action Buttons Row */
+/* Equal-sized Action Buttons Row - Anchored strictly to the bottom of all cards */
 .contact-action-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 10px;
   width: 100%;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .contact-equal-btn {
@@ -405,7 +383,7 @@
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
-  padding: 10px 14px !important;
+  padding: 11px 14px !important;
   font-size: 0.84rem !important;
   font-weight: 700 !important;
   text-decoration: none !important;

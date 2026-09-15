@@ -107,21 +107,6 @@ export default function LocationSection() {
                       </span>
                     </div>
 
-                    {/* Circular Profile Avatar Picture */}
-                    <div className="contact-avatar-wrapper">
-                      <div className="contact-avatar-ring">
-                        <img
-                          src={c.profilePic || '/profile_pic/default_avatar.jpg'}
-                          alt={c.name}
-                          className="contact-avatar-img"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = '/profile_pic/default_avatar.jpg';
-                          }}
-                        />
-                      </div>
-                    </div>
-
                     {/* Name & Role */}
                     <div className="contact-profile-info">
                       <h3 className="contact-profile-name">
@@ -193,20 +178,6 @@ export default function LocationSection() {
                     <span className="contact-badge-pill">
                       {c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator')}
                     </span>
-                  </div>
-
-                  <div className="contact-avatar-wrapper">
-                    <div className="contact-avatar-ring">
-                      <img
-                        src={c.profilePic || '/profile_pic/default_avatar.jpg'}
-                        alt={c.name}
-                        className="contact-avatar-img"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/profile_pic/default_avatar.jpg';
-                        }}
-                      />
-                    </div>
                   </div>
 
                   <div className="contact-profile-info">
