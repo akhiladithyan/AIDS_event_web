@@ -109,6 +109,7 @@ export const INITIAL_CONTACTS = [
     role: 'Technical Co-ordinator',
     phone: '9499943640',
     email: 'akhil.tech@veltechmultitech.org',
+    whatsappUrl: 'https://wa.me/919499943640',
     availability: 'Available 9 AM - 6 PM',
     isPrimary: true,
     badgeText: 'Primary Contact',
@@ -121,6 +122,7 @@ export const INITIAL_CONTACTS = [
     role: 'Event Lead & Queries',
     phone: '+91 98765 43210',
     email: 'coordinator@veltechmultitech.org',
+    whatsappUrl: 'https://wa.me/919876543210',
     availability: 'Event Day Helpdesk',
     isPrimary: false,
     badgeText: 'Student Lead',
@@ -133,6 +135,7 @@ export const INITIAL_CONTACTS = [
     role: 'General & Registration Office',
     phone: '+91 91234 56789',
     email: 'aidex2026@veltechmultitech.org',
+    whatsappUrl: 'https://wa.me/919123456789',
     availability: 'Helpdesk Desk',
     isPrimary: false,
     badgeText: 'General Desk',
@@ -229,6 +232,34 @@ const mapJudgeToDb = (j) => ({
   name: j.name,
   assigned_events: j.assignedEvents || [],
   access_levels: j.accessLevels || ['judge']
+});
+
+const mapContactFromDb = (row) => ({
+  id: row.id,
+  name: row.name,
+  role: row.role,
+  phone: row.phone,
+  email: row.email || '',
+  whatsappUrl: row.whatsapp_url || row.whatsappUrl || (row.phone ? `https://wa.me/${String(row.phone).replace(/[^0-9]/g, '')}` : ''),
+  availability: row.availability || 'Available 9 AM - 6 PM',
+  isPrimary: Boolean(row.is_primary ?? row.isPrimary),
+  badgeText: row.badge_text || row.badgeText || (row.is_primary ? 'Primary Contact' : 'Co-ordinator'),
+  profilePic: row.profile_pic || row.profilePic || '/profile-pic/profile-pic-1.jpeg',
+  tags: row.tags ? (Array.isArray(row.tags) ? row.tags : (typeof row.tags === 'string' ? (row.tags.startsWith('[') ? JSON.parse(row.tags) : row.tags.split(',').map(t => t.trim())) : [])) : []
+});
+
+const mapContactToDb = (c) => ({
+  id: c.id,
+  name: c.name,
+  role: c.role,
+  phone: c.phone,
+  email: c.email || '',
+  whatsapp_url: c.whatsappUrl || (c.phone ? `https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}` : ''),
+  availability: c.availability || '',
+  is_primary: Boolean(c.isPrimary),
+  badge_text: c.badgeText || (c.isPrimary ? 'Primary Contact' : 'Co-ordinator'),
+  profile_pic: c.profilePic || '/profile-pic/profile-pic-1.jpeg',
+  tags: Array.isArray(c.tags) ? c.tags : []
 });
 
 export const storeService = {
@@ -1351,62 +1382,149 @@ export const storeService = {
 
   // 8. CONTACTS MANAGEMENT (Student & Tech Co-ordinators)
   async getContacts() {
-    try {
-      const stored = localStorage.getItem('aidex_contacts');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length >= 3) {
-          return parsed.map((c, i) => ({
-            ...c,
-            profilePic: c.profilePic && !c.profilePic.includes('default_avatar') ? c.profilePic : (INITIAL_CONTACTS[i]?.profilePic || `/profile-pic/profile-pic-${(i % 3) + 1}.jpeg`)
-          }));
-        }
-      }
-    } catch (e) {}
+    let contactsList = [];
 
-    // Fallback seed with 3 contacts
-    try {
-      localStorage.setItem('aidex_contacts', JSON.stringify(INITIAL_CONTACTS));
-    } catch (e) {}
-    return INITIAL_CONTACTS;
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('contacts').select('*');
+        if (!error && data && data.length > 0) {
+          contactsList = data.map(mapContactFromDb);
+        } else if (!data || data.length === 0) {
+          // First-time seed into Supabase contacts table
+          const seedRows = INITIAL_CONTACTS.map(mapContactToDb);
+          const { error: seedErr } = await supabase.from('contacts').insert(seedRows);
+          if (!seedErr) {
+            contactsList = INITIAL_CONTACTS;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase contacts query error:', err);
+      }
+    }
+
+    // Offline / Local storage fallback
+    if (contactsList.length === 0) {
+      try {
+        const stored = localStorage.getItem('aidex_contacts');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            contactsList = parsed;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (contactsList.length === 0) {
+      contactsList = INITIAL_CONTACTS;
+    }
+
+    return contactsList;
   },
 
   async addContact(contact) {
-    const contacts = await this.getContacts();
     const newContact = {
       id: contact.id || 'c-' + Date.now(),
       name: contact.name || '',
       role: contact.role || 'Co-ordinator',
       phone: contact.phone || '',
       email: contact.email || '',
-      availability: contact.availability || 'Available Event Day',
+      whatsappUrl: contact.whatsappUrl || (contact.phone ? `https://wa.me/${String(contact.phone).replace(/[^0-9]/g, '')}` : ''),
+      availability: contact.availability || 'Available 9 AM - 6 PM',
       isPrimary: Boolean(contact.isPrimary),
       badgeText: contact.badgeText || (contact.isPrimary ? 'Primary Contact' : 'Co-ordinator'),
-      profilePic: contact.profilePic || '/profile_pic/default_avatar.jpg',
+      profilePic: contact.profilePic || '/profile-pic/profile-pic-1.jpeg',
       tags: Array.isArray(contact.tags) ? contact.tags : (contact.tags ? contact.tags.split(',').map(t => t.trim()) : ['Queries', 'Helpdesk'])
     };
-    const updated = [...contacts, newContact];
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = mapContactToDb(newContact);
+        const { error } = await supabase.from('contacts').upsert([dbPayload]);
+        if (error) {
+          console.warn('Supabase add contact warning:', error);
+          if (error.message && (error.message.includes('column') || error.code === 'PGRST204')) {
+            const fallback = {
+              id: newContact.id,
+              name: newContact.name,
+              role: newContact.role,
+              phone: newContact.phone,
+              email: newContact.email
+            };
+            await supabase.from('contacts').upsert([fallback]);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase add contact error:', err);
+      }
+    }
+
+    // Local cache sync
     try {
+      const current = await this.getContacts();
+      const updated = [...current.filter(c => c.id !== newContact.id), newContact];
       localStorage.setItem('aidex_contacts', JSON.stringify(updated));
     } catch (e) {}
+
     return newContact;
   },
 
   async updateContact(contact) {
-    const contacts = await this.getContacts();
-    const updated = contacts.map(c => c.id === contact.id ? { ...c, ...contact } : c);
+    const updatedContact = {
+      ...contact,
+      whatsappUrl: contact.whatsappUrl || (contact.phone ? `https://wa.me/${String(contact.phone).replace(/[^0-9]/g, '')}` : ''),
+      isPrimary: Boolean(contact.isPrimary),
+      tags: Array.isArray(contact.tags) ? contact.tags : (contact.tags ? contact.tags.split(',').map(t => t.trim()) : [])
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = mapContactToDb(updatedContact);
+        const { error } = await supabase.from('contacts').upsert([dbPayload]);
+        if (error) {
+          console.warn('Supabase update contact warning:', error);
+          if (error.message && (error.message.includes('column') || error.code === 'PGRST204')) {
+            const fallback = {
+              id: updatedContact.id,
+              name: updatedContact.name,
+              role: updatedContact.role,
+              phone: updatedContact.phone,
+              email: updatedContact.email
+            };
+            await supabase.from('contacts').upsert([fallback]);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase update contact error:', err);
+      }
+    }
+
+    // Local cache sync
     try {
+      const current = await this.getContacts();
+      const updated = current.map(c => c.id === updatedContact.id ? updatedContact : c);
       localStorage.setItem('aidex_contacts', JSON.stringify(updated));
     } catch (e) {}
-    return contact;
+
+    return updatedContact;
   },
 
   async deleteContact(id) {
-    const contacts = await this.getContacts();
-    const updated = contacts.filter(c => c.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('contacts').delete().eq('id', id);
+        if (error) console.warn('Supabase delete contact warning:', error);
+      } catch (err) {
+        console.warn('Supabase delete contact error:', err);
+      }
+    }
+
     try {
+      const current = await this.getContacts();
+      const updated = current.filter(c => c.id !== id);
       localStorage.setItem('aidex_contacts', JSON.stringify(updated));
     } catch (e) {}
+
     return true;
   },
 

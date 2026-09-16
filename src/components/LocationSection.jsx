@@ -19,6 +19,34 @@ export default function LocationSection() {
     loadContacts();
   }, []);
 
+  const getWhatsappUrl = (c) => {
+    if (!c) return '#';
+    const url = (c.whatsappUrl || '').trim();
+    if (url) {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+      if (url.startsWith('wa.me/')) {
+        return `https://${url}`;
+      }
+      const cleanDigits = url.replace(/[^0-9]/g, '');
+      if (cleanDigits) {
+        return `https://wa.me/${cleanDigits}`;
+      }
+    }
+    const phoneDigits = (c.phone || '').replace(/[^0-9]/g, '');
+    if (phoneDigits) {
+      return `https://wa.me/${phoneDigits}`;
+    }
+    return '#';
+  };
+
+  const getCallUrl = (c) => {
+    if (!c || !c.phone) return '#';
+    const cleanPhone = String(c.phone).replace(/\s+/g, '');
+    return `tel:${cleanPhone}`;
+  };
+
   // Vel Tech Multi Tech exact campus coordinates map view embed URL
   const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15541.45892548858!2d80.090000!3d13.136000!2m3!1f0!0!f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a52636a0d2495b5%3A0x8e27c1349f25712f!2sVel%20Tech%20Multi%20Tech%20Dr.Rangarajan%20Dr.Sakunthala%20Engineering%20College!5e0!3m2!1sen!2sin!4v1710000000000!5m2!1sen!2sin";
   const directMapsUrl = "https://maps.google.com/?q=Vel+Tech+Multi+Tech+Dr.Rangarajan+Dr.Sakunthala+Engineering+College+Avadi+Chennai";
@@ -131,7 +159,7 @@ export default function LocationSection() {
                     <div className="contact-action-row">
                       <PillButton
                         as="a"
-                        href={c.whatsappUrl || `https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}`}
+                        href={getWhatsappUrl(c)}
                         target="_blank"
                         rel="noopener noreferrer"
                         variant="primary"
@@ -147,7 +175,7 @@ export default function LocationSection() {
 
                       <PillButton
                         as="a"
-                        href={`tel:${c.phone}`}
+                        href={getCallUrl(c)}
                         variant="primary"
                         className="contact-equal-btn contact-call-pill"
                       >
@@ -201,7 +229,7 @@ export default function LocationSection() {
                   <div className="contact-action-row">
                     <PillButton
                       as="a"
-                      href={c.whatsappUrl || `https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}`}
+                      href={getWhatsappUrl(c)}
                       target="_blank"
                       rel="noopener noreferrer"
                       variant="primary"
@@ -217,7 +245,7 @@ export default function LocationSection() {
 
                     <PillButton
                       as="a"
-                      href={`tel:${c.phone}`}
+                      href={getCallUrl(c)}
                       variant="primary"
                       className="contact-equal-btn contact-call-pill"
                     >

@@ -39,9 +39,10 @@ const Admin = () => {
   const [contactRole, setContactRole] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [contactWhatsappUrl, setContactWhatsappUrl] = useState('');
   const [contactAvailability, setContactAvailability] = useState('');
   const [contactBadgeText, setContactBadgeText] = useState('');
-  const [contactProfilePic, setContactProfilePic] = useState('/profile_pic/default_avatar.jpg');
+  const [contactProfilePic, setContactProfilePic] = useState('/profile-pic/profile-pic-1.jpeg');
   const [isUploadingContactPic, setIsUploadingContactPic] = useState(false);
   const [contactIsPrimary, setContactIsPrimary] = useState(false);
   const [contactTagsStr, setContactTagsStr] = useState('');
@@ -164,9 +165,10 @@ const Admin = () => {
         role: contactRole,
         phone: contactPhone,
         email: contactEmail,
+        whatsappUrl: contactWhatsappUrl || (contactPhone ? `https://wa.me/${String(contactPhone).replace(/[^0-9]/g, '')}` : ''),
         availability: contactAvailability,
         badgeText: contactBadgeText || (contactIsPrimary ? 'Primary Contact' : 'Co-ordinator'),
-        profilePic: contactProfilePic || '/profile_pic/default_avatar.jpg',
+        profilePic: contactProfilePic || '/profile-pic/profile-pic-1.jpeg',
         isPrimary: contactIsPrimary,
         tags
       };
@@ -179,7 +181,7 @@ const Admin = () => {
 
       setShowContactModal(false);
       await loadAdminData();
-      alert(`Contact details for "${contactName}" saved!`);
+      alert(`Contact details for "${contactName}" saved successfully!`);
     } catch (err) {
       alert(err.message || "Failed to save contact details.");
     }
@@ -191,9 +193,10 @@ const Admin = () => {
     setContactRole(c.role);
     setContactPhone(c.phone);
     setContactEmail(c.email || '');
+    setContactWhatsappUrl(c.whatsappUrl || (c.phone ? `https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}` : ''));
     setContactAvailability(c.availability || '');
     setContactBadgeText(c.badgeText || '');
-    setContactProfilePic(c.profilePic || '/profile_pic/default_avatar.jpg');
+    setContactProfilePic(c.profilePic || '/profile-pic/profile-pic-1.jpeg');
     setContactIsPrimary(Boolean(c.isPrimary));
     setContactTagsStr(c.tags ? c.tags.join(', ') : '');
     setShowContactModal(true);
@@ -452,8 +455,10 @@ const Admin = () => {
                     setContactRole('');
                     setContactPhone('');
                     setContactEmail('');
+                    setContactWhatsappUrl('');
                     setContactAvailability('Available 9 AM - 6 PM');
                     setContactBadgeText('Co-ordinator');
+                    setContactProfilePic('/profile-pic/profile-pic-1.jpeg');
                     setContactIsPrimary(false);
                     setContactTagsStr('');
                     setShowContactModal(true);
@@ -480,6 +485,7 @@ const Admin = () => {
 
                       <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 6, margin: '14px 0' }}>
                         <div><strong>Phone:</strong> <code style={{ color: '#fff', fontSize: '1rem' }}>{c.phone}</code></div>
+                        <div><strong>WhatsApp:</strong> <span style={{ color: '#25D366', wordBreak: 'break-all' }}>{c.whatsappUrl || (c.phone ? `https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}` : 'Auto-generated')}</span></div>
                         <div><strong>Email:</strong> {c.email || 'N/A'}</div>
                         <div><strong>Availability:</strong> {c.availability || 'N/A'}</div>
                       </div>
@@ -743,6 +749,23 @@ const Admin = () => {
                         value={contactEmail}
                         onChange={e => setContactEmail(e.target.value)}
                       />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>WhatsApp Direct Chat Link / URL</span>
+                      <span style={{ fontSize: '0.74rem', color: '#25D366', fontWeight: 500 }}>Optional (Auto-generated from Phone if blank)</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="glass-input"
+                      placeholder="e.g. https://wa.me/919499943640 or https://chat.whatsapp.com/..."
+                      value={contactWhatsappUrl}
+                      onChange={e => setContactWhatsappUrl(e.target.value)}
+                    />
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                      Paste a direct WhatsApp link (e.g. <code>https://wa.me/919499943640</code>) or group invite link.
                     </div>
                   </div>
 
