@@ -972,7 +972,8 @@ Vel Tech Multi Tech Engineering College`;
                         </td>
                         <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
                         <td style={{ padding: '14px 16px' }}>
-                          {t.leaderName} ({t.leaderPhone})
+                          <div>{t.leaderName} ({t.leaderPhone})</div>
+                          {t.leaderEmail && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{t.leaderEmail}</div>}
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
