@@ -509,8 +509,17 @@ export const storeService = {
       teams = [];
     }
 
-    // Ensure all teams & individual student members have valid QR code data URLs populated
+    // Calculate relative team numbers and IDs dynamically per event
+    const eventCounts = {};
     for (const team of teams) {
+      if (!eventCounts[team.eventId]) eventCounts[team.eventId] = 0;
+      eventCounts[team.eventId]++;
+      team.teamNo = eventCounts[team.eventId];
+      
+      const numStr = String(team.teamNo).padStart(2, '0');
+      const evtCode = team.eventId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-3) || 'E1';
+      team.displayId = `TM-${evtCode}-${numStr}`; // Dynamic display ID
+
       if (!team.qrCodeUrl && team.qrCodeToken) {
         try {
           team.qrCodeUrl = await QRCode.toDataURL(team.qrCodeToken, { width: 300, margin: 2 });
@@ -785,9 +794,10 @@ export const storeService = {
     let targetMember = null;
     const tokenUpper = cleanToken.toUpperCase();
 
-    // 1. Check exact match on Team ID or Team QR Code Token
+    // 1. Check exact match on    // 1. Check Team QR token exactly
     targetTeam = teams.find(t => 
       (t.id && t.id.toUpperCase() === tokenUpper) || 
+      (t.displayId && t.displayId.toUpperCase() === tokenUpper) ||
       (t.qrCodeToken && t.qrCodeToken.toUpperCase() === tokenUpper)
     );
     

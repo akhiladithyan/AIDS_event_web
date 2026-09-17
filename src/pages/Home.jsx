@@ -161,14 +161,14 @@ const Home = () => {
       registerModalEvent.teamSize?.toLowerCase().includes('solo')
     );
 
-    if ((!isSolo && !teamName) || !college || !department || !leaderName || !leaderPhone) {
-      alert(isSolo ? 'Please fill out College, Department, Participant Name, and Phone Number.' : 'Please fill out Team Name, College, Department, Leader Name, and Leader Phone.');
+    if (!college || !department || !leaderName || !leaderPhone) {
+      alert(isSolo ? 'Please fill out College, Department, Participant Name, and Phone Number.' : 'Please fill out College, Department, Leader Name, and Leader Phone.');
       return;
     }
 
     try {
       const newTeam = await storeService.registerTeam({
-        teamName: isSolo ? `${leaderName}'s Entry` : teamName,
+        teamName: teamName || `${leaderName}'s Entry`,
         eventId: registerModalEvent.id,
         college,
         department,
@@ -571,15 +571,14 @@ const Home = () => {
                         {!isSolo && (
                           <div>
                             <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                              Team Name *
+                              Team Name (Optional)
                             </label>
                             <input
                               type="text"
                               className="glass-input"
-                              placeholder="e.g. AI Vanguard"
+                              placeholder="e.g. Code Warriors"
                               value={teamName}
                               onChange={e => setTeamName(e.target.value)}
-                              required={!isSolo}
                             />
                           </div>
                         )}
@@ -658,7 +657,7 @@ const Home = () => {
                         {!isSolo && extraMemberInputsCount > 0 && (
                           <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginTop: 8 }}>
                             <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: 10 }}>
-                              Additional Team Members ({extraMemberInputsCount} Max)
+                              Additional Team Members (Optional, up to {extraMemberInputsCount})
                             </label>
                             {Array.from({ length: extraMemberInputsCount }).map((_, idx) => (
                               <div key={idx} style={{ marginBottom: 10 }}>
@@ -722,7 +721,7 @@ const Home = () => {
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-subtle)' }}>Team Name</div>
                       <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#ef4a40' }}>{registrationResult.teamName}</div>
                     </div>
-                    <span className="badge-purple">{registrationResult.id}</span>
+                    <span className="badge-purple">{registrationResult.displayId || registrationResult.id}</span>
                   </div>
 
                   {/* QR Code & Wristband Print Token */}

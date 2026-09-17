@@ -962,7 +962,7 @@ Vel Tech Multi Tech Engineering College`;
                       >
                         <td style={{ padding: '14px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#ef4a40' }}>
                           <span style={{ display: 'block', fontSize: '0.78rem', color: '#a395f3' }}>Team #{t.teamNo || 1}</span>
-                          {t.id}
+                          {t.displayId || t.id}
                         </td>
                         <td style={{ padding: '14px 16px', fontWeight: 700 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
