@@ -309,8 +309,18 @@ const Manager = () => {
 
   const handleOnSpotRegister = async (e) => {
     e.preventDefault();
-    if (!onSpotTeamName || !onSpotEventId || !onSpotLeaderName || !onSpotCollege || !onSpotDepartment || !onSpotLeaderPhone || !onSpotLeaderEmail) {
-      alert('Please fill all required fields: Event, Team Name, College, Department, Leader Name, Phone, and Email');
+    
+    const onSpotSelectedEvent = events.find(ev => ev.id === onSpotEventId);
+    const isOnSpotSolo = onSpotSelectedEvent && (
+      onSpotSelectedEvent.teamSize === '1' ||
+      onSpotSelectedEvent.teamSize === '1 Member' ||
+      onSpotSelectedEvent.teamSize === 'Individual' ||
+      onSpotSelectedEvent.teamSize?.toLowerCase().includes('individual') ||
+      onSpotSelectedEvent.teamSize?.toLowerCase().includes('solo')
+    );
+
+    if ((!isOnSpotSolo && (!onSpotTeamName || onSpotTeamName.trim() === '')) || !onSpotEventId || !onSpotLeaderName || !onSpotCollege || !onSpotDepartment || !onSpotLeaderPhone || !onSpotLeaderEmail) {
+      alert(isOnSpotSolo ? 'Please fill all required fields: Event, College, Department, Leader Name, Phone, and Email' : 'Please fill all required fields: Event, Team Name, College, Department, Leader Name, Phone, and Email');
       return;
     }
 
@@ -1206,9 +1216,8 @@ Vel Tech Multi Tech Engineering College`;
                   </div>
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Name *</label>
-                    <input type="text" className="glass-input" value={onSpotTeamName} onChange={e => setOnSpotTeamName(e.target.value)} required />
+                    <input type="text" className="glass-input" value={onSpotTeamName} onChange={e => setOnSpotTeamName(e.target.value)} />
                   </div>
-                  <div>
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>College / Institution Name *</label>
                     <input type="text" className="glass-input" placeholder="e.g. Vel Tech High Tech" value={onSpotCollege} onChange={e => setOnSpotCollege(e.target.value)} required />

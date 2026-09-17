@@ -630,7 +630,19 @@ export const storeService = {
       console.warn('Failed to generate QR Data URL:', err);
     }
 
-    const finalTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Solo`;
+    const isSolo = targetEvent && (
+      targetEvent.teamSize === '1' ||
+      targetEvent.teamSize === '1 Member' ||
+      targetEvent.teamSize === 'Individual' ||
+      targetEvent.teamSize?.toLowerCase().includes('individual') ||
+      targetEvent.teamSize?.toLowerCase().includes('solo')
+    );
+
+    if (!isSolo && (!teamName || teamName.trim() === '')) {
+      throw new Error('Team Name is mandatory for team events.');
+    }
+
+    const finalTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Entry`;
 
     const newTeam = {
       id: teamId,

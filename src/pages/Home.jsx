@@ -161,7 +161,7 @@ const Home = () => {
       registerModalEvent.teamSize?.toLowerCase().includes('solo')
     );
 
-    if ((!isSolo && !teamName) || !college || !department || !leaderName || !leaderPhone || !leaderEmail) {
+    if ((!isSolo && (!teamName || teamName.trim() === '')) || !college || !department || !leaderName || !leaderPhone || !leaderEmail) {
       alert(isSolo ? 'Please fill out College, Department, Participant Name, Phone Number, and Email.' : 'Please fill out Team Name, College, Department, Leader Name, Leader Phone, and Leader Email.');
       return;
     }
