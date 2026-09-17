@@ -58,6 +58,7 @@ const Manager = () => {
   const [onSpotEventId, setOnSpotEventId] = useState('');
   const [onSpotLeaderName, setOnSpotLeaderName] = useState('');
   const [onSpotLeaderPhone, setOnSpotLeaderPhone] = useState('');
+  const [onSpotLeaderEmail, setOnSpotLeaderEmail] = useState('');
 
   useEffect(() => {
     // Mandatory password lock: Require password entry on every page visit
@@ -320,6 +321,7 @@ const Manager = () => {
       department: onSpotDepartment,
       leaderName: onSpotLeaderName,
       leaderPhone: onSpotLeaderPhone || 'Walk-in',
+      leaderEmail: onSpotLeaderEmail || '',
       memberNames: []
     });
 
@@ -332,6 +334,7 @@ const Manager = () => {
     setOnSpotDepartment('');
     setOnSpotLeaderName('');
     setOnSpotLeaderPhone('');
+    setOnSpotLeaderEmail('');
     alert(`On-spot team ${newTeam.teamName} registered & marked present! Team ID: ${newTeam.id}`);
     await loadManagerData();
   };
@@ -973,7 +976,7 @@ Vel Tech Multi Tech Engineering College`;
                         <td style={{ padding: '14px 16px', color: '#a395f3' }}>{t.eventTitle}</td>
                         <td style={{ padding: '14px 16px' }}>
                           <div>{t.leaderName} ({t.leaderPhone})</div>
-                          {t.leaderEmail && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{t.leaderEmail}</div>}
+                          {t.leaderEmail ? <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{t.leaderEmail}</div> : <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', opacity: 0.5 }}>No Email Provided</div>}
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1220,6 +1223,10 @@ Vel Tech Multi Tech Engineering College`;
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Phone Number</label>
                     <input type="tel" className="glass-input" value={onSpotLeaderPhone} onChange={e => setOnSpotLeaderPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address</label>
+                    <input type="email" className="glass-input" value={onSpotLeaderEmail} onChange={e => setOnSpotLeaderEmail(e.target.value)} />
                   </div>
 
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
