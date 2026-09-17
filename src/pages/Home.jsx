@@ -161,8 +161,8 @@ const Home = () => {
       registerModalEvent.teamSize?.toLowerCase().includes('solo')
     );
 
-    if (!college || !department || !leaderName || !leaderPhone) {
-      alert(isSolo ? 'Please fill out College, Department, Participant Name, and Phone Number.' : 'Please fill out College, Department, Leader Name, and Leader Phone.');
+    if ((!isSolo && !teamName) || !college || !department || !leaderName || !leaderPhone || !leaderEmail) {
+      alert(isSolo ? 'Please fill out College, Department, Participant Name, Phone Number, and Email.' : 'Please fill out Team Name, College, Department, Leader Name, Leader Phone, and Leader Email.');
       return;
     }
 
@@ -571,7 +571,7 @@ const Home = () => {
                         {!isSolo && (
                           <div>
                             <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                              Team Name (Optional)
+                              Team Name *
                             </label>
                             <input
                               type="text"
@@ -579,6 +579,7 @@ const Home = () => {
                               placeholder="e.g. Code Warriors"
                               value={teamName}
                               onChange={e => setTeamName(e.target.value)}
+                              required={!isSolo}
                             />
                           </div>
                         )}
@@ -643,7 +644,7 @@ const Home = () => {
 
                         <div>
                           <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                            {isSolo ? 'Email Address (Optional)' : 'Leader Email (Optional)'}
+                            {isSolo ? 'Email Address *' : 'Leader Email *'}
                           </label>
                           <input
                             type="email"
@@ -651,6 +652,7 @@ const Home = () => {
                             placeholder="student@college.edu"
                             value={leaderEmail}
                             onChange={e => setLeaderEmail(e.target.value)}
+                            required
                           />
                         </div>
 

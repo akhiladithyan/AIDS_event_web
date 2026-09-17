@@ -309,8 +309,8 @@ const Manager = () => {
 
   const handleOnSpotRegister = async (e) => {
     e.preventDefault();
-    if (!onSpotTeamName || !onSpotEventId || !onSpotLeaderName) {
-      alert('Please fill all required fields');
+    if (!onSpotTeamName || !onSpotEventId || !onSpotLeaderName || !onSpotCollege || !onSpotDepartment || !onSpotLeaderPhone || !onSpotLeaderEmail) {
+      alert('Please fill all required fields: Event, Team Name, College, Department, Leader Name, Phone, and Email');
       return;
     }
 
@@ -1209,24 +1209,25 @@ Vel Tech Multi Tech Engineering College`;
                     <input type="text" className="glass-input" value={onSpotTeamName} onChange={e => setOnSpotTeamName(e.target.value)} required />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>College / Institution Name</label>
-                    <input type="text" className="glass-input" placeholder="e.g. Vel Tech High Tech" value={onSpotCollege} onChange={e => setOnSpotCollege(e.target.value)} />
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>College / Institution Name *</label>
+                    <input type="text" className="glass-input" placeholder="e.g. Vel Tech High Tech" value={onSpotCollege} onChange={e => setOnSpotCollege(e.target.value)} required />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department</label>
-                    <input type="text" className="glass-input" placeholder="e.g. AI & DS" value={onSpotDepartment} onChange={e => setOnSpotDepartment(e.target.value)} />
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department *</label>
+                    <input type="text" className="glass-input" placeholder="e.g. AI & DS" value={onSpotDepartment} onChange={e => setOnSpotDepartment(e.target.value)} required />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Team Leader / Representative Name *</label>
                     <input type="text" className="glass-input" value={onSpotLeaderName} onChange={e => setOnSpotLeaderName(e.target.value)} required />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Phone Number</label>
-                    <input type="tel" className="glass-input" value={onSpotLeaderPhone} onChange={e => setOnSpotLeaderPhone(e.target.value)} />
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Phone Number *</label>
+                    <input type="tel" className="glass-input" value={onSpotLeaderPhone} onChange={e => setOnSpotLeaderPhone(e.target.value)} required />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address</label>
-                    <input type="email" className="glass-input" value={onSpotLeaderEmail} onChange={e => setOnSpotLeaderEmail(e.target.value)} />
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address *</label>
+                    <input type="email" className="glass-input" value={onSpotLeaderEmail} onChange={e => setOnSpotLeaderEmail(e.target.value)} required />
                   </div>
 
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
