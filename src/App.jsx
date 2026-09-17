@@ -12,7 +12,6 @@ import Results from './pages/Results';
 import Scan from './pages/Scan';
 import Pass from './pages/Pass';
 import LoadingScreen from './components/LoadingScreen';
-import LogoLoop from './components/LogoLoop';
 
 function AppContent() {
   const isHomePage = window.location.pathname === '/';
@@ -75,11 +74,6 @@ function AppContent() {
           alignItems: 'center',
           gap: 16
         }}>
-          {/* React Bits Infinite Logo Loop Marquee */}
-          <div style={{ width: '100%', maxWidth: 1000, margin: '0 auto' }}>
-            <LogoLoop speed={30} pauseOnHover={true} />
-          </div>
-
           <div>AIDEX 2026 &copy; Department of Artificial Intelligence & Data Science</div>
           <div style={{ fontSize: '0.8rem', marginTop: -4, color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>
             Vel Tech Multi Tech Dr. Rangarajan Dr. Sakunthala Engineering College

@@ -89,7 +89,7 @@ export default function DoomsdayHero({ bgImage, onExploreClick }) {
         </div>
         <div className="doomsday-date">
           <ShinyText
-            text="OCT 7, 2026  |  NATIONAL TECHNICAL SYMPOSIUM"
+            text="OCT 7, 2026  |  SYMPOSIUM"
             color="#ffffff"
             shineColor="#1ce604"
             speed={3.5}
