@@ -773,7 +773,7 @@ const Home = () => {
                     <Copy size={16} /> Copy Credentials
                   </PillButton>
                   <PillButton
-                    onClick={() => closeModal()}
+                    onClick={() => openEventModal(registerModalEvent)}
                     variant="primary"
                   >
                     Done
