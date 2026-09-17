@@ -324,14 +324,9 @@ export const storeService = {
     
     let { error } = await supabase.from('events').insert([dbPayload]);
     
-    // Fallback if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
+    // Show explicit error if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
     if (error && (error.message.includes('criteria') || error.message.includes('max_teams') || error.code === 'PGRST204')) {
-      const fallbackPayload = { ...dbPayload };
-      delete fallbackPayload.criteria;
-      delete fallbackPayload.max_teams;
-      
-      const res = await supabase.from('events').insert([fallbackPayload]);
-      error = res.error;
+      throw new Error(`Database Migration Required!\n\nPlease run this query in your Supabase SQL Editor:\n\nALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_teams INTEGER DEFAULT 20;\nALTER TABLE public.events ADD COLUMN IF NOT EXISTS criteria JSONB;`);
     }
     
     if (error) {
@@ -347,14 +342,9 @@ export const storeService = {
     
     let { error } = await supabase.from('events').update(dbPayload).eq('id', updatedEvent.id);
     
-    // Fallback if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
+    // Show explicit error if database schema lacks optional/newer columns like 'criteria' or 'max_teams'
     if (error && (error.message.includes('criteria') || error.message.includes('max_teams') || error.code === 'PGRST204')) {
-      const fallbackPayload = { ...dbPayload };
-      delete fallbackPayload.criteria;
-      delete fallbackPayload.max_teams;
-      
-      const res = await supabase.from('events').update(fallbackPayload).eq('id', updatedEvent.id);
-      error = res.error;
+      throw new Error(`Database Migration Required!\n\nPlease run this query in your Supabase SQL Editor:\n\nALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_teams INTEGER DEFAULT 20;\nALTER TABLE public.events ADD COLUMN IF NOT EXISTS criteria JSONB;`);
     }
     
     if (error) {
