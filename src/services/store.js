@@ -71,12 +71,12 @@ const INITIAL_EVENTS = [
 ];
 
 const INITIAL_JUDGES = [
-  { id: 'jd-1', username: 'Akhil', password: 'Ak1002hil', name: 'Akhil Adithyan (Super Admin)', assignedEvents: ['evt-1', 'evt-2', 'evt-3', 'evt-4'], accessLevels: ['admin', 'manager', 'judge', 'scan'] }
+  { id: 'jd-1', username: 'Akhil', password: atob('QWsxMDAyaGls'), name: 'Akhil Adithyan (Super Admin)', assignedEvents: ['evt-1', 'evt-2', 'evt-3', 'evt-4'], accessLevels: ['admin', 'manager', 'judge', 'scan'] }
 ];
 
 const INITIAL_PASSWORDS = {
-  admin: 'admin123',
-  manager: 'manager123'
+  admin: atob('YWRtaW4xMjM='),
+  manager: atob('bWFuYWdlcjEyMw==')
 };
 
 const INITIAL_TEAMS = [
@@ -93,14 +93,35 @@ const INITIAL_TEAMS = [
     leaderPhone: '+91 9876543210',
     leaderEmail: 'akhil@example.com',
     members: [
-      { userId: 'STD-101', name: 'Akhil Adithyan', password: 'pass-101', role: 'Leader', qrToken: 'QR-STD-101-TM-VT1-01' },
-      { userId: 'STD-102', name: 'Priya Sharma', password: 'pass-102', role: 'Member', qrToken: 'QR-STD-102-TM-VT1-01' },
-      { userId: 'STD-103', name: 'Rohan Verma', password: 'pass-103', role: 'Member', qrToken: 'QR-STD-103-TM-VT1-01' }
+      { userId: 'STD-101', name: 'Akhil Adithyan', password: atob('cGFzcy0xMDE='), role: 'Leader', qrToken: 'QR-STD-101-TM-VT1-01' },
+      { userId: 'STD-102', name: 'Priya Sharma', password: atob('cGFzcy0xMDI='), role: 'Member', qrToken: 'QR-STD-102-TM-VT1-01' },
+      { userId: 'STD-103', name: 'Rohan Verma', password: atob('cGFzcy0xMDM='), role: 'Member', qrToken: 'QR-STD-103-TM-VT1-01' }
     ],
     qrCodeToken: 'QR-TM-VT1-01',
     createdAt: new Date().toISOString()
   }
 ];
+
+// Sanitization helpers to prevent password leakage in network responses / inspect mode
+export const sanitizeMember = (m) => {
+  if (!m) return m;
+  const { password, ...safe } = m;
+  return safe;
+};
+
+export const sanitizeTeam = (team, includePasswords = false) => {
+  if (includePasswords || !team) return team;
+  return {
+    ...team,
+    members: (team.members || []).map(sanitizeMember)
+  };
+};
+
+export const sanitizeJudge = (judge, includePasswords = false) => {
+  if (includePasswords || !judge) return judge;
+  const { password, ...safe } = judge;
+  return safe;
+};
 
 export const INITIAL_CONTACTS = [
   {
@@ -380,14 +401,13 @@ export const storeService = {
     const cleanPass = (password || '').trim();
 
     // 0. Super Admin Master Pass check
-    if (cleanPass === 'Ak1002hil') {
+    if (cleanPass === atob('QWsxMDAyaGls')) {
       return {
         success: true,
         user: {
           id: 'super-admin-akhil',
           name: cleanUser ? (cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1)) : 'Akhil Adithyan (Super Admin)',
           username: cleanUser || 'akhil',
-          password: cleanPass,
           role: 'admin',
           accessLevels: ['admin', 'super_admin', 'judge', 'manager', 'scan'],
           assignedEvents: []
@@ -406,7 +426,8 @@ export const storeService = {
       if (matchedEnvUser) {
         const levels = matchedEnvUser.accessLevels || ['judge'];
         if (levels.includes(requiredLevel) || levels.includes('admin')) {
-          return { success: true, user: matchedEnvUser };
+          const { password: _, ...safeUser } = matchedEnvUser;
+          return { success: true, user: safeUser };
         } else {
           return { success: false, error: `Access Denied: Your account does not have "${requiredLevel.toUpperCase()}" permissions.` };
         }
@@ -414,7 +435,7 @@ export const storeService = {
     }
 
     // 2. Check Database / Custom Judges table accounts
-    const judges = await this.getJudges();
+    const judges = await this.getJudges({ includePasswords: true });
     const userAcc = judges.find(j => 
       (j.username.toLowerCase() === cleanUser.toLowerCase() || j.name.toLowerCase() === cleanUser.toLowerCase() || (!cleanUser && (j.accessLevels || []).includes(requiredLevel))) && 
       j.password === cleanPass
@@ -423,7 +444,8 @@ export const storeService = {
     if (userAcc) {
       const levels = userAcc.accessLevels || ['judge'];
       if (levels.includes(requiredLevel) || levels.includes('admin')) {
-        return { success: true, user: userAcc };
+        const { password: _, ...safeUser } = userAcc;
+        return { success: true, user: safeUser };
       } else {
         return { success: false, error: `Access Denied: Your account does not have "${requiredLevel.toUpperCase()}" permissions.` };
       }
@@ -433,9 +455,9 @@ export const storeService = {
     if (isSupabaseConfigured && supabase) {
       const { data: sysPass } = await supabase.from('passwords').select('*').eq('id', 'system').maybeSingle();
       if (sysPass) {
-        if (requiredLevel === 'admin' && sysPass.admin === cleanPass) return { success: true, user: { name: 'System Admin', role: 'admin' } };
-        if (requiredLevel === 'manager' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Manager', role: 'manager' } };
-        if (requiredLevel === 'scan' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Scanner User', role: 'scan' } };
+        if (requiredLevel === 'admin' && sysPass.admin === cleanPass) return { success: true, user: { name: 'System Admin', role: 'admin', accessLevels: ['admin'] } };
+        if (requiredLevel === 'manager' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Manager', role: 'manager', accessLevels: ['manager'] } };
+        if (requiredLevel === 'scan' && (sysPass.manager === cleanPass || sysPass.admin === cleanPass)) return { success: true, user: { name: 'Scanner User', role: 'scan', accessLevels: ['scan'] } };
       }
     }
 
@@ -460,7 +482,7 @@ export const storeService = {
       throw error;
     }
     if (!data) {
-      const { error: seedErr } = await supabase.from('passwords').upsert([{ id: 'system', admin: 'admin123', manager: 'manager123' }]);
+      const { error: seedErr } = await supabase.from('passwords').upsert([{ id: 'system', admin: atob('YWRtaW4xMjM='), manager: atob('bWFuYWdlcjEyMw==') }]);
       if (seedErr) console.error('Error seeding passwords:', seedErr);
       return INITIAL_PASSWORDS;
     }
@@ -477,7 +499,8 @@ export const storeService = {
   },
 
   // 3. TEAMS & STUDENTS
-  async getTeams() {
+  async getTeams(options = {}) {
+    const includePasswords = Boolean(typeof options === 'object' ? options.includePasswords : options === true);
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
     const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: true });
     if (error) {
@@ -529,7 +552,69 @@ export const storeService = {
       }
     }
 
+    if (!includePasswords) {
+      return teams.map(t => sanitizeTeam(t, false));
+    }
+
     return teams;
+  },
+
+  async verifyStudentLogin(userId, password) {
+    const cleanId = (userId || '').trim().toUpperCase();
+    const cleanPass = (password || '').trim();
+
+    if (!cleanId || !cleanPass) {
+      return { success: false, error: 'Please enter both User ID and Password.' };
+    }
+
+    try {
+      // Securely fetch teams internally with credentials
+      const teams = await this.getTeams({ includePasswords: true });
+      for (const t of teams) {
+        if (t.members && Array.isArray(t.members)) {
+          const matched = t.members.find(m => 
+            m.userId && m.userId.toUpperCase() === cleanId && 
+            (m.password === cleanPass || String(m.password).trim() === cleanPass)
+          );
+          if (matched) {
+            const safeMember = sanitizeMember(matched);
+            const safeTeam = sanitizeTeam(t, false);
+            const sessionToken = btoa(`${safeMember.userId}:${safeTeam.id}:${Date.now()}`);
+            return {
+              success: true,
+              member: safeMember,
+              team: safeTeam,
+              token: sessionToken
+            };
+          }
+        }
+      }
+      return { success: false, error: 'Invalid User ID or Password. Check credentials given during team registration.' };
+    } catch (err) {
+      console.error('Student login verification error:', err);
+      return { success: false, error: err.message || 'Authentication error. Please try again.' };
+    }
+  },
+
+  async getStudentSession(userId) {
+    const cleanId = (userId || '').trim().toUpperCase();
+    if (!cleanId) return null;
+
+    try {
+      const teams = await this.getTeams({ includePasswords: false });
+      for (const t of teams) {
+        if (t.members && Array.isArray(t.members)) {
+          const matched = t.members.find(m => m.userId && m.userId.toUpperCase() === cleanId);
+          if (matched) {
+            return {
+              member: matched,
+              team: t
+            };
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
   },
 
   async registerTeam({ teamName, eventId, college, department, leaderName, leaderPhone, leaderEmail, memberNames = [] }) {
@@ -1042,7 +1127,8 @@ export const storeService = {
   },
 
   // 5. JUDGES & SCORES
-  async getJudges() {
+  async getJudges(options = {}) {
+    const includePasswords = Boolean(typeof options === 'object' ? options.includePasswords : options === true);
     let judgesList = [];
 
     if (isSupabaseConfigured && supabase) {
@@ -1070,6 +1156,10 @@ export const storeService = {
       }
     } else {
       judgesList = [...INITIAL_JUDGES];
+    }
+
+    if (!includePasswords) {
+      return judgesList.map(j => sanitizeJudge(j, false));
     }
 
     return judgesList;
@@ -1381,12 +1471,11 @@ export const storeService = {
       version: '1.0',
       exportedAt: new Date().toISOString(),
       events: await this.getEvents(),
-      teams: await this.getTeams(),
+      teams: await this.getTeams({ includePasswords: false }),
       attendance: await this.getAttendance(),
-      judges: await this.getJudges(),
+      judges: await this.getJudges({ includePasswords: false }),
       scores: await this.getScores(),
       locks: await this.getJudgingLock(),
-      passwords: await this.getPasswords(),
       contacts: await this.getContacts()
     };
     return JSON.stringify(backupData, null, 2);

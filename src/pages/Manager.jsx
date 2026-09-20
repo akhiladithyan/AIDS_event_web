@@ -74,7 +74,7 @@ const Manager = () => {
   }, [isAuthenticated]);
 
   const loadManagerData = async () => {
-    const tms = await storeService.getTeams();
+    const tms = await storeService.getTeams({ includePasswords: true });
     const evts = await storeService.getEvents();
     const att = await storeService.getAttendance();
     setTeams(tms);
@@ -1362,7 +1362,7 @@ Vel Tech Multi Tech Engineering College`;
                     <input
                       type="password"
                       className="glass-input"
-                      placeholder="Manager Password (manager123)"
+                      placeholder="Enter Manager Security Password"
                       value={confirmPasswordInput}
                       onChange={e => setConfirmPasswordInput(e.target.value)}
                       required

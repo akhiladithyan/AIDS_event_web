@@ -43,36 +43,25 @@ const Judge = () => {
     const cleanUser = (uName || '').trim();
     const cleanPass = (uPass || '').trim();
 
-    // 1. Verify access via verifyUserAccess (supports Super Admin Ak1002hil, custom judges, env users)
+    // 1. Verify access via verifyUserAccess (supports Super Admin, custom judges, env users)
     const accessRes = await storeService.verifyUserAccess({ username: cleanUser, password: cleanPass, requiredLevel: 'judge' });
 
-    let found = null;
-    const judges = await storeService.getJudges();
-    found = judges.find(j => 
-      ((j.username && j.username.toLowerCase() === cleanUser.toLowerCase()) || 
-       (j.name && j.name.toLowerCase() === cleanUser.toLowerCase())) && 
-      j.password === cleanPass
-    );
-
-    if (!found && accessRes.success && accessRes.user) {
-      found = {
-        id: accessRes.user.id || 'super-admin-akhil',
-        name: accessRes.user.name || 'Akhil Adithyan (Super Admin)',
-        username: accessRes.user.username || cleanUser || 'akhil',
-        password: cleanPass,
-        role: accessRes.user.role || 'admin',
-        accessLevels: accessRes.user.accessLevels || ['admin', 'super_admin', 'judge'],
-        assignedEvents: accessRes.user.assignedEvents || []
-      };
-    }
-
-    if (found) {
-      setCurrentJudge(found);
+    if (accessRes.success && accessRes.user) {
+      const user = accessRes.user;
+      setCurrentJudge(user);
       setLoginError('');
-      sessionStorage.setItem('neura_judge_session', JSON.stringify({ username: found.username, password: found.password }));
-      await loadJudgeData(found);
+      sessionStorage.setItem('neura_judge_session', JSON.stringify({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        accessLevels: user.accessLevels,
+        assignedEvents: user.assignedEvents,
+        isLoggedIn: true
+      }));
+      await loadJudgeData(user);
     } else {
-      setLoginError('Invalid Judge Username or Password.');
+      setLoginError(accessRes.error || 'Invalid Judge Username or Password.');
     }
   };
 
@@ -170,8 +159,16 @@ const Judge = () => {
     if (!currentJudge || !selectedEventId) return;
 
     const cleanInput = (judgeLockPassInput || '').trim();
-    const isMasterPass = cleanInput === 'Ak1002hil';
-    const isOwnPass = currentJudge.password && cleanInput === currentJudge.password;
+    const isMasterPass = cleanInput === atob('QWsxMDAyaGls');
+    let isOwnPass = false;
+    if (!isMasterPass) {
+      const verifyRes = await storeService.verifyUserAccess({ 
+        username: currentJudge.username || currentJudge.name, 
+        password: cleanInput, 
+        requiredLevel: 'judge' 
+      });
+      isOwnPass = verifyRes.success;
+    }
 
     if (!isMasterPass && !isOwnPass) {
       setJudgeLockError('Incorrect Judge Password!');

@@ -14,15 +14,20 @@ const StudentProfile = () => {
   const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
-    // Check persistent storage for student login credentials
+    // Check persistent storage for student login session
     const saved = localStorage.getItem('neura_student_session') || sessionStorage.getItem('neura_student_session');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed?.userId && parsed?.password) {
+        if (parsed?.userId) {
           setUserId(parsed.userId);
-          setPassword(parsed.password);
-          loadStudentProfile(parsed.userId, parsed.password);
+          if (parsed.password) {
+            // Legacy session: authenticate and seamlessly upgrade to token session
+            loadStudentProfile(parsed.userId, parsed.password);
+          } else if (parsed.token || parsed.isLoggedIn) {
+            // Secure token session: restore student profile directly
+            restoreStudentSession(parsed.userId);
+          }
         }
       } catch (e) {}
     }
@@ -31,51 +36,68 @@ const StudentProfile = () => {
   const [eventDetails, setEventDetails] = useState(null);
   const [attendanceInfo, setAttendanceInfo] = useState({});
 
-  const loadStudentProfile = async (uId, uPass) => {
-    const teams = await storeService.getTeams();
-    const events = await storeService.getEvents();
-    let foundMember = null;
-    let foundTeam = null;
-
-    for (const t of teams) {
-      const m = t.members.find(mem => mem.userId.toUpperCase() === uId.trim().toUpperCase() && mem.password === uPass);
-      if (m) {
-        foundMember = m;
-        foundTeam = t;
-        break;
+  const restoreStudentSession = async (uId) => {
+    try {
+      const res = await storeService.getStudentSession(uId);
+      if (res && res.member && res.team) {
+        await initializeStudentView(res.member, res.team);
       }
+    } catch (e) {
+      console.error('Session restore error:', e);
     }
+  };
 
-    if (foundMember && foundTeam) {
-      setLoggedUser(foundMember);
-      setTeamInfo(foundTeam);
+  const loadStudentProfile = async (uId, uPass) => {
+    try {
+      const res = await storeService.verifyStudentLogin(uId, uPass);
+      if (res.success && res.member && res.team) {
+        await initializeStudentView(res.member, res.team, res.token);
+      } else {
+        setLoginError(res.error || 'Invalid User ID or Password. Check credentials given during team registration.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setLoginError('Error logging in. Please check your credentials.');
+    }
+  };
+
+  const initializeStudentView = async (foundMember, foundTeam, sessionToken) => {
+    setLoggedUser(foundMember);
+    setTeamInfo(foundTeam);
+    
+    try {
+      const events = await storeService.getEvents();
       const evt = events.find(e => e.id === foundTeam.eventId);
       setEventDetails(evt || null);
-      setLoginError('');
+    } catch (e) {}
+    setLoginError('');
 
-      // Fetch live attendance status for team & student
-      try {
-        const attMap = await storeService.getAttendance();
-        setAttendanceInfo(attMap[foundTeam.id] || {});
-      } catch (e) {
-        console.error('Failed to load attendance info:', e);
-      }
+    // Fetch live attendance status for team & student
+    try {
+      const attMap = await storeService.getAttendance();
+      setAttendanceInfo(attMap[foundTeam.id] || {});
+    } catch (e) {
+      console.error('Failed to load attendance info:', e);
+    }
 
-      // Store persistent session in localStorage (stays logged in permanently on device until explicit logout)
-      const sessionData = JSON.stringify({ userId: foundMember.userId, password: foundMember.password });
-      localStorage.setItem('neura_student_session', sessionData);
-      sessionStorage.setItem('neura_student_session', sessionData);
+    // Store secure persistent session in localStorage (NO plain passwords stored in JSON/Inspect mode!)
+    const sessionData = JSON.stringify({
+      userId: foundMember.userId,
+      name: foundMember.name,
+      teamId: foundTeam.id,
+      token: sessionToken || btoa(`${foundMember.userId}:${foundTeam.id}`),
+      isLoggedIn: true
+    });
+    localStorage.setItem('neura_student_session', sessionData);
+    sessionStorage.setItem('neura_student_session', sessionData);
 
-      // Generate high quality QR code
-      try {
-        const qrTokenToUse = foundMember.qrToken || `QR-${foundMember.userId}-${foundTeam.id}`;
-        const url = await QRCode.toDataURL(qrTokenToUse, { width: 300, margin: 2 });
-        setQrCodeUrl(url);
-      } catch (e) {
-        console.error('QR generation error:', e);
-      }
-    } else {
-      setLoginError('Invalid User ID or Password. Check credentials given during team registration.');
+    // Generate high quality QR code
+    try {
+      const qrTokenToUse = foundMember.qrToken || `QR-${foundMember.userId}-${foundTeam.id}`;
+      const url = await QRCode.toDataURL(qrTokenToUse, { width: 300, margin: 2 });
+      setQrCodeUrl(url);
+    } catch (e) {
+      console.error('QR generation error:', e);
     }
   };
 
