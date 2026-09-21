@@ -1018,7 +1018,7 @@ Vel Tech Multi Tech Engineering College`;
                                 fontSize: '0.75rem'
                               }}
                             >
-                              {isLunch ? '🍱 LUNCH' : '🍱 NO LUNCH'}
+                              {isLunch ? '🍱 LUNCH' : '🍱 LUNCH'}
                             </button>
                             <button
                               onClick={() => handleToggleAttendanceStage(t.id, null, 'snacks')}
@@ -1033,7 +1033,7 @@ Vel Tech Multi Tech Engineering College`;
                                 fontSize: '0.75rem'
                               }}
                             >
-                              {isSnacks ? '☕ SNACKS' : '☕ NO SNACKS'}
+                              {isSnacks ? '☕ SNACKS' : '☕ SNACKS'}
                             </button>
                           </div>
                         </td>
@@ -1159,7 +1159,7 @@ Vel Tech Multi Tech Engineering College`;
                                           cursor: 'pointer'
                                         }}
                                       >
-                                        {mLunch ? '🍱 Lunch Had' : '🍱 No Lunch'}
+                                        {mLunch ? '🍱 Lunch Had' : '🍱 Lunch'}
                                       </button>
 
                                       <button
@@ -1175,7 +1175,7 @@ Vel Tech Multi Tech Engineering College`;
                                           cursor: 'pointer'
                                         }}
                                       >
-                                        {mSnacks ? '☕ Snacks Had' : '☕ No Snacks'}
+                                        {mSnacks ? '☕ Snacks Had' : '☕ Snacks'}
                                       </button>
                                     </div>
 
