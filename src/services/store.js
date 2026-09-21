@@ -644,7 +644,7 @@ export const storeService = {
     const proposedTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Entry`;
 
     if (allTeams.some(t => t.teamName.toLowerCase() === proposedTeamName.toLowerCase())) {
-        throw new Error(`Team name "${proposedTeamName}" is already taken! Please choose a different name.`);
+        throw new Error('Team or student name already exist');
     }
 
     for (const existingTeam of allTeams) {
@@ -655,7 +655,7 @@ export const storeService = {
 
       for (const incName of incomingNames) {
         if (registeredNames.includes(incName.toLowerCase())) {
-          throw new Error(`Participant "${incName}" is already registered in "${existingTeam.teamName}"! One person can only participate in ONE event.`);
+          throw new Error('Team or student name already exist');
         }
       }
     }
