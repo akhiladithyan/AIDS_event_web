@@ -388,7 +388,11 @@ export const storeService = {
     try {
       const rawEnvUsers = import.meta.env.VITE_USERS_CONFIG;
       if (rawEnvUsers) {
-        return JSON.parse(rawEnvUsers);
+        try {
+          return JSON.parse(atob(rawEnvUsers));
+        } catch {
+          return JSON.parse(rawEnvUsers);
+        }
       }
     } catch (e) {
       console.warn('Error parsing VITE_USERS_CONFIG from .env:', e);
@@ -633,12 +637,17 @@ export const storeService = {
       throw new Error(`Registration Full! Maximum ${limit} teams allowed for "${targetEvent.title}".`);
     }
 
-    // 3. Duplicate Participant Check for the Same Event
+    // 3. Duplicate Participant Check across ANY Event & Unique Team Name Check
     const cleanLeaderName = leaderName.trim();
     const cleanMemberNames = memberNames.filter(n => n && n.trim().length > 0).map(n => n.trim());
     const incomingNames = [cleanLeaderName, ...cleanMemberNames];
+    const proposedTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Entry`;
 
-    for (const existingTeam of existingEventTeams) {
+    if (allTeams.some(t => t.teamName.toLowerCase() === proposedTeamName.toLowerCase())) {
+        throw new Error(`Team name "${proposedTeamName}" is already taken! Please choose a different name.`);
+    }
+
+    for (const existingTeam of allTeams) {
       const registeredNames = [
         existingTeam.leaderName,
         ...(existingTeam.members || []).map(m => m.name)
@@ -646,7 +655,7 @@ export const storeService = {
 
       for (const incName of incomingNames) {
         if (registeredNames.includes(incName.toLowerCase())) {
-          throw new Error(`Participant "${incName}" is already registered in "${existingTeam.teamName}" for ${targetEvent.title}! Duplicate registrations for the same event are not allowed.`);
+          throw new Error(`Participant "${incName}" is already registered in "${existingTeam.teamName}"! One person can only participate in ONE event.`);
         }
       }
     }
@@ -717,7 +726,7 @@ export const storeService = {
       throw new Error('Team Name is mandatory for team events.');
     }
 
-    const finalTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Entry`;
+    const finalTeamName = proposedTeamName;
 
     const newTeam = {
       id: teamId,
