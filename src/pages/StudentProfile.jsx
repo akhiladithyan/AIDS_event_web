@@ -11,7 +11,11 @@ const StudentProfile = () => {
   const [loggedUser, setLoggedUser] = useState(null);
   const [teamInfo, setTeamInfo] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [showMemberDetails, setShowMemberDetails] = useState(null);
   const [loginError, setLoginError] = useState('');
+
+  const lunchEnabled = localStorage.getItem('feature_lunch') === 'true';
+  const snacksEnabled = localStorage.getItem('feature_snacks') === 'true';
 
   useEffect(() => {
     // Check persistent storage for student login session
@@ -363,29 +367,33 @@ const StudentProfile = () => {
                           {isAtt ? '✓ Attendance: Present' : '✗ Attendance: Absent'}
                         </span>
 
-                        <span style={{
-                          padding: '6px 14px',
-                          borderRadius: 100,
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          background: isLun ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                          border: isLun ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                          color: isLun ? '#4ade80' : 'rgba(255, 255, 255, 0.5)'
-                        }}>
-                          {isLun ? '🍱 Lunch: Redeemed' : '🍱 Lunch: Available'}
-                        </span>
+                        {lunchEnabled && (
+                          <span style={{
+                            padding: '6px 14px',
+                            borderRadius: 100,
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            background: isLun ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                            border: isLun ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                            color: isLun ? '#4ade80' : 'rgba(255, 255, 255, 0.5)'
+                          }}>
+                            {isLun ? '🍱 Lunch: Redeemed' : '🍱 Lunch: Available'}
+                          </span>
+                        )}
 
-                        <span style={{
-                          padding: '6px 14px',
-                          borderRadius: 100,
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          background: isSna ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                          border: isSna ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                          color: isSna ? '#facc15' : 'rgba(255, 255, 255, 0.5)'
-                        }}>
-                          {isSna ? '☕ Snacks: Redeemed' : '☕ Snacks: Available'}
-                        </span>
+                        {snacksEnabled && (
+                          <span style={{
+                            padding: '6px 14px',
+                            borderRadius: 100,
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            background: isSna ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                            border: isSna ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                            color: isSna ? '#facc15' : 'rgba(255, 255, 255, 0.5)'
+                          }}>
+                            {isSna ? '☕ Snacks: Redeemed' : '☕ Snacks: Available'}
+                          </span>
+                        )}
                       </>
                     );
                   })()}

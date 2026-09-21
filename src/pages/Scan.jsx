@@ -11,6 +11,9 @@ const Scan = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passError, setPassError] = useState('');
 
+  const lunchEnabled = localStorage.getItem('feature_lunch') === 'true';
+  const snacksEnabled = localStorage.getItem('feature_snacks') === 'true';
+
   // Scanning mode & states
   const [scanMode, setScanMode] = useState('attendance'); // 'attendance', 'lunch', 'snacks'
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -270,20 +273,24 @@ const Scan = () => {
             >
               🎟️ Event Attendance
             </PillButton>
-            <PillButton
-              onClick={() => setScanMode('lunch')}
-              variant={scanMode === 'lunch' ? 'primary' : 'secondary'}
-              style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
-            >
-              🍱 Lunch Pass
-            </PillButton>
-            <PillButton
-              onClick={() => setScanMode('snacks')}
-              variant={scanMode === 'snacks' ? 'primary' : 'secondary'}
-              style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
-            >
-              ☕ Snacks Pass
-            </PillButton>
+            {lunchEnabled && (
+              <PillButton
+                onClick={() => setScanMode('lunch')}
+                variant={scanMode === 'lunch' ? 'primary' : 'secondary'}
+                style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
+              >
+                🍱 Lunch Pass
+              </PillButton>
+            )}
+            {snacksEnabled && (
+              <PillButton
+                onClick={() => setScanMode('snacks')}
+                variant={scanMode === 'snacks' ? 'primary' : 'secondary'}
+                style={{ flex: '1 1 140px', padding: '12px 14px', fontSize: '0.88rem' }}
+              >
+                ☕ Snacks Pass
+              </PillButton>
+            )}
           </div>
 
           {/* MAIN SCANNING CARD */}

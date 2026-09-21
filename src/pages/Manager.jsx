@@ -43,6 +43,9 @@ const Manager = () => {
   const [batchEventFilter, setBatchEventFilter] = useState('All');
   const [batchStatusMessage, setBatchStatusMessage] = useState('');
 
+  const lunchEnabled = localStorage.getItem('feature_lunch') === 'true';
+  const snacksEnabled = localStorage.getItem('feature_snacks') === 'true';
+
   // Scanner & Scan Feedback State
   const [scanMode, setScanMode] = useState('attendance'); // 'attendance', 'lunch', 'snacks'
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -807,20 +810,24 @@ Vel Tech Multi Tech Engineering College`;
                 >
                   📋 Attendance
                 </PillButton>
-                <PillButton
-                  onClick={() => setScanMode('lunch')}
-                  variant={scanMode === 'lunch' ? 'active' : 'secondary'}
-                  style={{ padding: '8px 18px', fontSize: '0.85rem' }}
-                >
-                  🍱 Lunch
-                </PillButton>
-                <PillButton
-                  onClick={() => setScanMode('snacks')}
-                  variant={scanMode === 'snacks' ? 'active' : 'secondary'}
-                  style={{ padding: '8px 18px', fontSize: '0.85rem' }}
-                >
-                  ☕ Snacks
-                </PillButton>
+                {lunchEnabled && (
+                  <PillButton
+                    onClick={() => setScanMode('lunch')}
+                    variant={scanMode === 'lunch' ? 'active' : 'secondary'}
+                    style={{ padding: '8px 18px', fontSize: '0.85rem' }}
+                  >
+                    🍱 Lunch
+                  </PillButton>
+                )}
+                {snacksEnabled && (
+                  <PillButton
+                    onClick={() => setScanMode('snacks')}
+                    variant={scanMode === 'snacks' ? 'active' : 'secondary'}
+                    style={{ padding: '8px 18px', fontSize: '0.85rem' }}
+                  >
+                    ☕ Snacks
+                  </PillButton>
+                )}
               </div>
             </div>
 
@@ -1005,36 +1012,40 @@ Vel Tech Multi Tech Engineering College`;
                             >
                               {isPresent ? '✓ ATTEND' : '✗ ABSENT'}
                             </button>
-                            <button
-                              onClick={() => handleToggleAttendanceStage(t.id, null, 'lunch')}
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: 100,
-                                border: isLunch ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                                background: isLunch ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                color: isLunch ? '#4ade80' : 'rgba(255, 255, 255, 0.5)',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              {isLunch ? '🍱 LUNCH' : '🍱 LUNCH'}
-                            </button>
-                            <button
-                              onClick={() => handleToggleAttendanceStage(t.id, null, 'snacks')}
-                              style={{
-                                padding: '4px 10px',
-                                borderRadius: 100,
-                                border: isSnacks ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                                background: isSnacks ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                color: isSnacks ? '#facc15' : 'rgba(255, 255, 255, 0.5)',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              {isSnacks ? '☕ SNACKS' : '☕ SNACKS'}
-                            </button>
+                            {lunchEnabled && (
+                              <button
+                                onClick={() => handleToggleAttendanceStage(t.id, null, 'lunch')}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 100,
+                                  border: isLunch ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                  background: isLunch ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: isLunch ? '#4ade80' : 'rgba(255, 255, 255, 0.5)',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                {isLunch ? '🍱 LUNCH' : '🍱 LUNCH'}
+                              </button>
+                            )}
+                            {snacksEnabled && (
+                              <button
+                                onClick={() => handleToggleAttendanceStage(t.id, null, 'snacks')}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 100,
+                                  border: isSnacks ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                                  background: isSnacks ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: isSnacks ? '#facc15' : 'rgba(255, 255, 255, 0.5)',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                {isSnacks ? '☕ SNACKS' : '☕ SNACKS'}
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
@@ -1146,37 +1157,41 @@ Vel Tech Multi Tech Engineering College`;
                                         {mAtt ? '✓ Present' : '✗ Absent'}
                                       </button>
 
-                                      <button
-                                        onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'lunch')}
-                                        style={{
-                                          padding: '3px 8px',
-                                          borderRadius: 6,
-                                          border: mLunch ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(255,255,255,0.15)',
-                                          background: mLunch ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
-                                          color: mLunch ? '#4ade80' : 'rgba(255,255,255,0.4)',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 700,
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        {mLunch ? '🍱 Lunch Had' : '🍱 Lunch'}
-                                      </button>
+                                      {lunchEnabled && (
+                                        <button
+                                          onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'lunch')}
+                                          style={{
+                                            padding: '3px 8px',
+                                            borderRadius: 6,
+                                            border: mLunch ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                            background: mLunch ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                                            color: mLunch ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            cursor: 'pointer'
+                                          }}
+                                        >
+                                          {mLunch ? '🍱 Lunch Had' : '🍱 Lunch'}
+                                        </button>
+                                      )}
 
-                                      <button
-                                        onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'snacks')}
-                                        style={{
-                                          padding: '3px 8px',
-                                          borderRadius: 6,
-                                          border: mSnacks ? '1px solid rgba(234,179,8,0.5)' : '1px solid rgba(255,255,255,0.15)',
-                                          background: mSnacks ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)',
-                                          color: mSnacks ? '#facc15' : 'rgba(255,255,255,0.4)',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 700,
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        {mSnacks ? '☕ Snacks Had' : '☕ Snacks'}
-                                      </button>
+                                      {snacksEnabled && (
+                                        <button
+                                          onClick={() => handleToggleAttendanceStage(t.id, m.userId, 'snacks')}
+                                          style={{
+                                            padding: '3px 8px',
+                                            borderRadius: 6,
+                                            border: mSnacks ? '1px solid rgba(234,179,8,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                            background: mSnacks ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)',
+                                            color: mSnacks ? '#facc15' : 'rgba(255,255,255,0.4)',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            cursor: 'pointer'
+                                          }}
+                                        >
+                                          {mSnacks ? '☕ Snacks Had' : '☕ Snacks'}
+                                        </button>
+                                      )}
                                     </div>
 
                                     <button

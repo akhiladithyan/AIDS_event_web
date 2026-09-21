@@ -45,6 +45,21 @@ const Pass = () => {
   const [deletePassInput, setDeletePassInput] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
+  const [lunchEnabled, setLunchEnabled] = useState(localStorage.getItem('feature_lunch') === 'true');
+  const [snacksEnabled, setSnacksEnabled] = useState(localStorage.getItem('feature_snacks') === 'true');
+
+  const toggleLunch = () => {
+    const val = !lunchEnabled;
+    setLunchEnabled(val);
+    localStorage.setItem('feature_lunch', val ? 'true' : 'false');
+  };
+
+  const toggleSnacks = () => {
+    const val = !snacksEnabled;
+    setSnacksEnabled(val);
+    localStorage.setItem('feature_snacks', val ? 'true' : 'false');
+  };
+
   useEffect(() => {
     // Require strict re-authentication on every page visit for /pass
     setIsAuthenticated(false);
@@ -575,6 +590,45 @@ const Pass = () => {
               </div>
             );
           })()}
+
+          {/* GLOBAL FEATURES CONFIGURATION */}
+          <div className="glass-panel" style={{ padding: 28, marginBottom: 36 }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 16px 0' }}>⚙️ Global Feature Configuration</h3>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+              Turn event features like Lunch and Snacks on or off. When disabled, the scanning and redemption buttons will be hidden across the system.
+            </p>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+              <button 
+                onClick={toggleLunch} 
+                style={{
+                  padding: '12px 24px', 
+                  borderRadius: 12, 
+                  background: lunchEnabled ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)', 
+                  border: lunchEnabled ? '1px solid #4ade80' : '1px solid rgba(255,255,255,0.2)',
+                  color: lunchEnabled ? '#4ade80' : '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 700
+                }}
+              >
+                {lunchEnabled ? '🍱 Lunch Enabled' : '🍱 Lunch Disabled'}
+              </button>
+              
+              <button 
+                onClick={toggleSnacks} 
+                style={{
+                  padding: '12px 24px', 
+                  borderRadius: 12, 
+                  background: snacksEnabled ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.05)', 
+                  border: snacksEnabled ? '1px solid #facc15' : '1px solid rgba(255,255,255,0.2)',
+                  color: snacksEnabled ? '#facc15' : '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 700
+                }}
+              >
+                {snacksEnabled ? '☕ Snacks Enabled' : '☕ Snacks Disabled'}
+              </button>
+            </div>
+          </div>
 
           {/* EVENT POINT TABLES & EVALUATION CRITERIA CLASSIFICATION */}
           <div className="glass-panel" style={{ padding: 28, marginBottom: 36 }}>
