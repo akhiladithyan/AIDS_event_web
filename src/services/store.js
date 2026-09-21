@@ -643,7 +643,8 @@ export const storeService = {
     const incomingNames = [cleanLeaderName, ...cleanMemberNames];
     const proposedTeamName = (teamName && teamName.trim().length > 0) ? teamName.trim() : `${cleanLeaderName}'s Entry`;
 
-    if (allTeams.some(t => t.teamName.toLowerCase() === proposedTeamName.toLowerCase())) {
+    const normalizedProposedTeam = proposedTeamName.replace(/\s+/g, '').toLowerCase();
+    if (allTeams.some(t => t.teamName.replace(/\s+/g, '').toLowerCase() === normalizedProposedTeam)) {
         throw new Error('Team or student name already exist');
     }
 
@@ -651,10 +652,10 @@ export const storeService = {
       const registeredNames = [
         existingTeam.leaderName,
         ...(existingTeam.members || []).map(m => m.name)
-      ].filter(Boolean).map(n => n.toLowerCase().trim());
+      ].filter(Boolean).map(n => n.replace(/\s+/g, '').toLowerCase());
 
       for (const incName of incomingNames) {
-        if (registeredNames.includes(incName.toLowerCase())) {
+        if (registeredNames.includes(incName.replace(/\s+/g, '').toLowerCase())) {
           throw new Error('Team or student name already exist');
         }
       }
