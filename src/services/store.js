@@ -661,10 +661,13 @@ export const storeService = {
     }
 
     // 4. Sequential Team ID Format per Event (Starts from 1 for each event: TM-EVT-01, TM-EVT-02...)
-    const teamNo = existingEventTeams.length + 1;
-    const numStr = String(teamNo).padStart(2, '0');
+    let teamNo = existingEventTeams.length + 1;
     const evtCode = eventId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-3) || 'E1';
-    const teamId = `TM-${evtCode}-${numStr}`;
+    let teamId = `TM-${evtCode}-${String(teamNo).padStart(2, '0')}`;
+    while (allTeams.some(t => t.id === teamId)) {
+      teamNo++;
+      teamId = `TM-${evtCode}-${String(teamNo).padStart(2, '0')}`;
+    }
     const qrCodeToken = `QR-${teamId}`;
 
     const leaderUserId = 'STD-' + Math.floor(100 + Math.random() * 900);
