@@ -1,4 +1,4 @@
-Subject: Official Registration Confirmation & Student Access Pass - Vel Tech Multi Tech Engineering College
+AIDEX'26 event Registration Confirmation & Student profile Access - Vel Tech Multi Tech Engineering College
 
 Dear {{STUDENT_NAME}},
 
@@ -20,9 +20,7 @@ Password       : {{PASSWORD}}
 IMPORTANT INSTRUCTIONS & MANDATORY NOTE:
 Please log in to the Student Portal (or /scan page) using your User ID and Password provided above.
 Your digital QR Code pass inside the portal is mandatory for:
-1. Event Gate Attendance Verification
-2. Lunch Counter Access
-3. Evening Refreshments & Snacks
+• Event Gate Attendance Verification
 
 Please keep your credentials confidential and present your QR Code at all scan counters during the event.
 
