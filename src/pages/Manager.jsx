@@ -537,42 +537,35 @@ const Manager = () => {
     setBatchStatusMessage(`✅ Successfully downloaded ${matches.length} QR code pass images for User ID range ${start} to ${end}!`);
   };
 
-  const handleSendTeamRegistrationEmail = (team) => {
-    const recipient = team.leaderEmail || '';
-    const subject = `Official Registration Confirmation & Student Access Pass - Vel Tech Multi Tech Engineering College`;
+  const handleCopyTeamEmail = (team) => {
+    const subject = `AIDEX'26 event Registration Confirmation & Student profile Access - Vel Tech Multi Tech Engineering College`;
     
     let membersBreakdown = '';
-    (team.members || []).forEach((m, idx) => {
-      membersBreakdown += `Member ${idx + 1}: ${m.name} (${m.role})\n`;
-      membersBreakdown += `User ID  : ${m.userId}\n`;
-      membersBreakdown += `Password : ${m.password}\n\n`;
+    (team.members || []).forEach((m) => {
+      membersBreakdown += `--------------------------------------------------
+REGISTRATION & LOGIN DETAILS
+--------------------------------------------------
+Student Name   : ${m.name}
+Team Name      : ${team.teamName}
+Event Name     : ${team.eventTitle}
+College        : ${team.college || 'Vel Tech Multi Tech Engineering College'}
+User ID        : ${m.userId}
+Password       : ${m.password}
+--------------------------------------------------\n\n`;
     });
 
     const body = `Dear ${team.leaderName || 'Participant'},
 
 Greetings from Vel Tech Multi Tech Engineering College!
 
-We are pleased to confirm your team's registration for ${team.eventTitle}. Below are your official registration details and student portal credentials:
+We are pleased to confirm your team's registration for ${team.eventTitle}. Below are the official registration details and student portal credentials for all your team members:
 
---------------------------------------------------
-REGISTRATION & LOGIN DETAILS
---------------------------------------------------
-Team Name      : ${team.teamName}
-Event Name     : ${team.eventTitle}
-College        : ${team.college || 'Vel Tech Multi Tech Engineering College'}
-Leader Contact : ${team.leaderName} (${team.leaderPhone || 'N/A'})
-
-STUDENT PORTAL ACCESS CREDENTIALS:
-${membersBreakdown}--------------------------------------------------
-
-📌 MANDATORY INSTRUCTION & NOTE:
-Each student must log in to the Student Portal (or /scan page) using their individual User ID and Password listed above.
+${membersBreakdown}IMPORTANT INSTRUCTIONS & MANDATORY NOTE:
+Please log in to the Student Portal (or /scan page) using your User ID and Password provided above.
 Your digital QR Code pass inside the portal is mandatory for:
-1. Event Gate & Team Attendance Verification
-2. Lunch Counter Access
-3. Evening Refreshments & Snacks
+• Event Gate Attendance Verification
 
-Please keep your credentials confidential and present your digital QR Code at all scan counters during the event.
+Please keep your credentials confidential and present your QR Code at all scan counters during the event.
 
 We wish you and your team all the best!
 
@@ -580,16 +573,62 @@ Warm Regards,
 Event Coordination Committee
 Vel Tech Multi Tech Engineering College`;
 
-    const fullMailText = `SUBJECT: ${subject}\n\nRECIPIENT: ${recipient}\n\n${body}`;
+    const fullMailText = `SUBJECT: ${subject}\n\n${body}`;
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(fullMailText).then(() => {
-        alert(`📋 Email template for "${team.teamName}" copied to your clipboard!\n\nYou can now open your email app and paste it directly.`);
+        alert(`📋 Email template for Team "${team.teamName}" copied to your clipboard!\n\nYou can now open your email app and paste it directly.`);
       }).catch(() => {
         fallbackCopyTextToClipboard(fullMailText, team.teamName);
       });
     } else {
       fallbackCopyTextToClipboard(fullMailText, team.teamName);
+    }
+  };
+
+  const handleCopyStudentEmail = (member, team) => {
+    const subject = `AIDEX'26 event Registration Confirmation & Student profile Access - Vel Tech Multi Tech Engineering College`;
+    
+    const body = `Dear ${member.name},
+
+Greetings from Vel Tech Multi Tech Engineering College!
+
+We are pleased to confirm your registration for ${team.eventTitle}. Below are your official registration details and student portal credentials:
+
+--------------------------------------------------
+REGISTRATION & LOGIN DETAILS
+--------------------------------------------------
+Student Name   : ${member.name}
+Team Name      : ${team.teamName}
+Event Name     : ${team.eventTitle}
+College        : ${team.college || 'Vel Tech Multi Tech Engineering College'}
+User ID        : ${member.userId}
+Password       : ${member.password}
+--------------------------------------------------
+
+IMPORTANT INSTRUCTIONS & MANDATORY NOTE:
+Please log in to the Student Portal (or /scan page) using your User ID and Password provided above.
+Your digital QR Code pass inside the portal is mandatory for:
+• Event Gate Attendance Verification
+
+Please keep your credentials confidential and present your QR Code at all scan counters during the event.
+
+We wish you and your team all the best!
+
+Warm Regards,
+Event Coordination Committee
+Vel Tech Multi Tech Engineering College`;
+
+    const fullMailText = `SUBJECT: ${subject}\n\n${body}`;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(fullMailText).then(() => {
+        alert(`📋 Email template for ${member.name} copied to your clipboard!\n\nYou can now open your email app and paste it directly.`);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(fullMailText, member.name);
+      });
+    } else {
+      fallbackCopyTextToClipboard(fullMailText, member.name);
     }
   };
 
@@ -1051,12 +1090,12 @@ Vel Tech Multi Tech Engineering College`;
                         <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button
-                              onClick={() => handleSendTeamRegistrationEmail(t)}
+                              onClick={() => handleCopyTeamEmail(t)}
                               className="btn-primary"
-                              title="Send Registration Confirmation Email to Team"
+                              title="Copy Registration Confirmation Email for Team"
                               style={{ padding: '6px 12px', fontSize: '0.8rem', gap: 6, background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.5)', color: '#60a5fa' }}
                             >
-                              <Mail size={14} /> Send Mail
+                              <Mail size={14} /> Copy Team Mail
                             </button>
                             <button
                               onClick={() => handleOpenEditMembersModal(t)}
@@ -1193,14 +1232,22 @@ Vel Tech Multi Tech Engineering College`;
                                         </button>
                                       )}
                                     </div>
-
-                                    <button
-                                      onClick={() => handleDownloadMemberQR(m, t)}
-                                      className="btn-secondary"
-                                      style={{ width: '100%', padding: '6px 10px', fontSize: '0.78rem', gap: 6, justifyContent: 'center' }}
-                                    >
-                                      <Download size={13} /> Download Student QR
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                      <button
+                                        onClick={() => handleDownloadMemberQR(m, t)}
+                                        className="btn-secondary"
+                                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', gap: 6, justifyContent: 'center' }}
+                                      >
+                                        <Download size={13} /> QR Pass
+                                      </button>
+                                      <button
+                                        onClick={() => handleCopyStudentEmail(m, t)}
+                                        className="btn-primary"
+                                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', gap: 6, justifyContent: 'center', background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.5)', color: '#60a5fa' }}
+                                      >
+                                        <Mail size={13} /> Copy Mail
+                                      </button>
+                                    </div>
                                   </div>
                                 );
                               })}
