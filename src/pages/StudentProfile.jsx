@@ -302,9 +302,7 @@ const StudentProfile = () => {
               Login to View Profile & QR Code
             </PillButton>
 
-            <div style={{ textAlign: 'center', marginTop: 12, fontSize: '0.82rem', color: 'var(--text-subtle)' }}>
-              Demo Login for testing: UserID <strong>STD-101</strong> / Password <strong>pass-101</strong>
-            </div>
+
           </form>
         </div>
       ) : (
