@@ -23,7 +23,7 @@ const isCashPrize = (evt) => {
 
 const Home = () => {
   const [events, setEvents] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const [teamCounts, setTeamCounts] = useState({});
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [selectedEvent, setSelectedEvent] = useState(null);
   
@@ -128,12 +128,12 @@ const Home = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [evts, tms] = await Promise.all([
+      const [evts, counts] = await Promise.all([
         storeService.getEvents(),
-        storeService.getTeams()
+        storeService.getEventTeamCounts()
       ]);
       setEvents(evts);
-      setTeams(tms);
+      setTeamCounts(counts);
     };
     fetchData();
   }, []);
@@ -278,7 +278,7 @@ const Home = () => {
         <div style={{ marginBottom: 140 }}>
           <MagicBento glowColor="34, 197, 94">
           {filteredEvents.map(evt => {
-            const registeredTeamCount = teams.filter(t => t.eventId === evt.id).length;
+            const registeredTeamCount = teamCounts[evt.id] || 0;
             const maxSlots = evt.maxTeams || 20;
 
             return (

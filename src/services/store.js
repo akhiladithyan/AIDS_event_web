@@ -503,6 +503,19 @@ export const storeService = {
   },
 
   // 3. TEAMS & STUDENTS
+  async getEventTeamCounts() {
+    if (!isSupabaseConfigured || !supabase) return {};
+    const { data, error } = await supabase.from('teams').select('event_id');
+    if (error) return {};
+    const counts = {};
+    if (data) {
+      data.forEach(row => {
+        counts[row.event_id] = (counts[row.event_id] || 0) + 1;
+      });
+    }
+    return counts;
+  },
+
   async getTeams(options = {}) {
     const includePasswords = Boolean(typeof options === 'object' ? options.includePasswords : options === true);
     if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured');
